@@ -63,6 +63,7 @@ completeBtns.forEach(btn => {
 		}
 	});
 });
+
 document.getElementById('logoutHubBtn')?.addEventListener('click', () => {
 	alert('Вы вышли из NZK Hub. Для повторного входа потребуется авторизация.');
 	window.location.href = 'index.html';
