@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="ru">
+
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>NZK | Выдать таск билдеру</title>
+	<link
+		href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600;14..32,700&display=swap"
+		rel="stylesheet">
+	<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+	<link rel="stylesheet" href="styles/give_tusk_form.css">
+
+</head>
+
+<body>
+
+	<header class="hub-header">
+		<div class="header-container">
+			<div class="logo-block">
+				<div class="logo-icon">
+					<i class="fas fa-cube"></i>
+				</div>
+				<div class="logo-text">
+					<span class="logo-nzk">NZK</span>
+					<span class="logo-sub">Staff Hub</span>
+				</div>
+			</div>
+
+			<!-- Навигационные вкладки (основные разделы хаба) -->
+			<nav class="hub-nav">
+				<button class="nav-tab active" data-tab="dashboard">
+					<i class="fas fa-chalkboard-user"></i>
+					<span>Обзор</span>
+				</button>
+				<button class="nav-tab" data-tab="builders">
+					<i class="fas fa-hard-hat"></i>
+					<span>Строители</span>
+				</button>
+				<button class="nav-tab" data-tab="voice-actors">
+					<i class="fas fa-microphone-alt"></i>
+					<span>Актёры озвучки</span>
+				</button>
+				<button class="nav-tab" data-tab="ideas">
+					<i class="fas fa-lightbulb"></i>
+					<span>Идеи построек</span>
+				</button>
+				<button class="nav-tab" data-tab="audio">
+					<i class="fas fa-head-side-headphones"></i>
+					<span>Звукоматериал</span>
+				</button>
+			</nav>
+
+			<div class="user-shortcut">
+				<div class="user-avatar">
+					<i class="fas fa-user-astronaut"></i>
+				</div>
+				<div class="user-meta">
+					<span class="user-name">Администратор</span>
+					<span class="user-role">NZK Lead</span>
+				</div>
+				<button class="logout-icon-btn" id="logoutHubBtn" title="Выйти">
+					<i class="fas fa-sign-out-alt"></i>
+				</button>
+			</div>
+		</div>
+	</header>
+
+	<div class="page-wrapper">
+		<div class="task-card">
+			<div class="card-header">
+				<div class="header-title">
+					<i class="fas fa-hard-hat"></i>
+					<h2>Выдать таск билдеру</h2>
+				</div>
+				<div class="builder-badge">
+					<i class="fas fa-cube"></i> NZK Build Team
+				</div>
+			</div>
+			<div class="card-body">
+				<form id="builderTaskForm">
+					<!-- выбор билдера -->
+					<div class="form-group">
+						<label><i class="fas fa-user-helmet-safety"></i> Строитель</label>
+						<select id="builderName" required>
+							<option value="" disabled selected>— Выберите билдера —</option>
+							<option value="Stark_Builder">🧱 Stark_Builder</option>
+							<option value="NatureCraft">🌿 NatureCraft</option>
+							<option value="IronHammer">⚒️ IronHammer</option>
+							<option value="Aleksey_Build">🏗️ Aleksey_Build</option>
+							<option value="MinerPro">⛏️ MinerPro</option>
+						</select>
+					</div>
+
+					<!-- название задачи -->
+					<div class="form-group">
+						<label><i class="fas fa-trowel"></i> Название таска</label>
+						<input type="text" id="taskName" placeholder="например: Возвести кузницу" required>
+					</div>
+
+					<!-- описание краткое -->
+					<div class="form-group">
+						<label><i class="fas fa-pen-ruler"></i> Краткое описание / требования</label>
+						<textarea id="taskDescription"
+							placeholder="Размер, стиль, координаты, важные детали..."></textarea>
+					</div>
+
+					<!-- два поля: приоритет + дедлайн -->
+					<div class="row-2cols">
+						<div class="form-group">
+							<label><i class="fas fa-chart-simple"></i> Приоритет</label>
+							<select id="priority" class="priority-select">
+								<option value="high">🔥 Высокий</option>
+								<option value="medium" selected>⭐ Средний</option>
+								<option value="low">❄️ Низкий</option>
+							</select>
+						</div>
+						<div class="form-group">
+							<label><i class="fas fa-calendar"></i> Срок</label>
+							<input type="date" id="deadline" required>
+						</div>
+					</div>
+
+					<!-- референсы (одна строка) -->
+					<div class="form-group">
+						<label><i class="fas fa-link"></i> Референс / ссылка (опционально)</label>
+						<input type="text" id="reference" placeholder="https:// или краткий комментарий">
+					</div>
+
+					<!-- кнопки -->
+					<div class="form-actions">
+						<button type="button" class="btn-outline" id="clearBtn"><i class="fas fa-undo-alt"></i>
+							Очистить</button>
+						<button type="submit" class="btn-primary"><i class="fas fa-paper-plane"></i> Выдать</button>
+					</div>
+				</form>
+			</div>
+		</div>
+	</div>
+
+	<!-- подключение универсального футера с навигацией на главные страницы -->
+	<footer class="hub-footer">
+		<div class="footer-container">
+			<div class="footer-col">
+				<div class="footer-logo">NZK Production</div>
+				<p>Мотивационная панель для команды. Все работы, таски, идеи и аудио — в одном месте.</p>
+			</div>
+			<div class="footer-col">
+				<h4>Навигация</h4>
+				<ul>
+					<li><a href="#" data-nav-footer="dashboard">Обзор хаба</a></li>
+					<li><a href="#" data-nav-footer="builders">Задачи строителей</a></li>
+					<li><a href="#" data-nav-footer="voice-actors">Актёры озвучки</a></li>
+					<li><a href="#" data-nav-footer="ideas">Идеи построек</a></li>
+				</ul>
+			</div>
+			<div class="footer-col">
+				<h4>Команда NZK</h4>
+				<ul>
+					<li><i class="fab fa-discord"></i> Discord: nzk.official</li>
+					<li><i class="fas fa-envelope"></i> support@nzk-team.com</li>
+					<li><i class="fas fa-chart-line"></i> Статус: активны 🔥</li>
+				</ul>
+			</div>
+		</div>
+		<div class="footer-bottom">
+			<p>© 2025 NZK StaffPanel — Все права защищены. Версия 2.0 | Мотивация и порядок</p>
+		</div>
+	</footer>
+
+	<script src="scripts/give_tusk_form.js"></script>
+
+</body>
+
+</html>
