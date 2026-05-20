@@ -1,0 +1,685 @@
+/* hub.css — полный стиль для NZK Hub страницы */
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Inter', sans-serif;
+    background: linear-gradient(135deg, #0a0c15 0%, #0f111f 100%);
+    color: #eef2ff;
+    line-height: 1.5;
+    overflow-x: hidden;
+}
+
+.hub-wrapper {
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+}
+
+/* ========== HEADER ========== */
+.hub-header {
+    background: rgba(8, 10, 18, 0.95);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid rgba(72, 85, 140, 0.3);
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+}
+
+.header-container {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 0.9rem 2rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 1rem;
+}
+
+.logo-block {
+    display: flex;
+    align-items: center;
+    gap: 0.8rem;
+}
+
+.logo-icon {
+    width: 44px;
+    height: 44px;
+    background: linear-gradient(145deg, #2c3e8f, #1a237e);
+    border-radius: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.6rem;
+    color: #ffd966;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+}
+
+.logo-text {
+    display: flex;
+    flex-direction: column;
+}
+
+.logo-nzk {
+    font-size: 1.6rem;
+    font-weight: 800;
+    background: linear-gradient(120deg, #ffffff, #a0b4ff);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    letter-spacing: 1px;
+}
+
+.logo-sub {
+    font-size: 0.7rem;
+    color: #8e9fd3;
+    margin-top: -5px;
+}
+
+/* навигационные вкладки */
+.hub-nav {
+    display: flex;
+    gap: 0.4rem;
+    background: rgba(22, 26, 42, 0.7);
+    padding: 0.4rem;
+    border-radius: 3rem;
+    backdrop-filter: blur(4px);
+}
+
+.nav-tab {
+    background: transparent;
+    border: none;
+    padding: 0.6rem 1.3rem;
+    border-radius: 2rem;
+    font-weight: 600;
+    font-size: 0.9rem;
+    color: #b7c2e8;
+    cursor: pointer;
+    transition: all 0.25s ease;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.nav-tab i {
+    font-size: 1rem;
+}
+
+.nav-tab:hover {
+    background: #2d345a;
+    color: white;
+}
+
+.nav-tab.active {
+    background: linear-gradient(95deg, #3a4ed5, #6132e0);
+    color: white;
+    box-shadow: 0 2px 10px rgba(58, 78, 213, 0.4);
+}
+
+/* юзер шорткат */
+.user-shortcut {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    background: #12162a;
+    padding: 0.4rem 1rem 0.4rem 0.8rem;
+    border-radius: 3rem;
+    border: 1px solid #2a3155;
+}
+
+.user-avatar {
+    width: 38px;
+    height: 38px;
+    background: #293053;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.2rem;
+    color: #ffcd7e;
+}
+
+.user-meta {
+    display: flex;
+    flex-direction: column;
+    line-height: 1.3;
+}
+
+.user-name {
+    font-weight: 700;
+    font-size: 0.9rem;
+}
+
+.user-role {
+    font-size: 0.7rem;
+    color: #90a0d0;
+}
+
+.logout-icon-btn {
+    background: none;
+    border: none;
+    color: #ff919f;
+    font-size: 1.1rem;
+    cursor: pointer;
+    padding: 0.3rem;
+    border-radius: 50%;
+    transition: all 0.2s;
+}
+
+.logout-icon-btn:hover {
+    background: #ff5e7c20;
+    color: #ffb7c2;
+}
+
+/* ========== MAIN ========== */
+.hub-main {
+    flex: 1;
+    max-width: 1400px;
+    margin: 0 auto;
+    width: 100%;
+    padding: 1.5rem 2rem;
+}
+
+.tab-content {
+    display: none;
+    animation: fadeSlide 0.35s ease-out;
+}
+
+.tab-content.active {
+    display: block;
+}
+
+@keyframes fadeSlide {
+    from {
+        opacity: 0;
+        transform: translateY(12px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* приветственная секция */
+.welcome-section {
+    background: linear-gradient(125deg, rgba(31, 38, 70, 0.6), rgba(20, 24, 48, 0.8));
+    border-radius: 2rem;
+    padding: 2rem;
+    margin-bottom: 2rem;
+    border: 1px solid rgba(100, 120, 200, 0.3);
+    backdrop-filter: blur(4px);
+}
+
+.welcome-section h1 {
+    font-size: 2rem;
+    margin-bottom: 0.75rem;
+    display: flex;
+    align-items: center;
+    gap: 0.8rem;
+}
+
+.welcome-section p {
+    color: #cbd5ff;
+    font-size: 1rem;
+}
+
+/* статистика */
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 1.5rem;
+    margin-bottom: 2.5rem;
+}
+
+.stat-card {
+    background: #111521;
+    border-radius: 1.5rem;
+    padding: 1.4rem;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    border: 1px solid #2a2f48;
+    transition: transform 0.2s, border-color 0.2s;
+}
+
+.stat-card:hover {
+    transform: translateY(-4px);
+    border-color: #4f62b0;
+    background: #13182a;
+}
+
+.stat-icon {
+    width: 52px;
+    height: 52px;
+    background: linear-gradient(145deg, #2c3f94, #1a266a);
+    border-radius: 1.2rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.7rem;
+    color: #ffda88;
+}
+
+.stat-info {
+    display: flex;
+    flex-direction: column;
+}
+
+.stat-value {
+    font-size: 2rem;
+    font-weight: 800;
+    line-height: 1;
+}
+
+.stat-label {
+    font-size: 0.8rem;
+    color: #9ca9db;
+}
+
+/* активность */
+.recent-activity {
+    background: #0f1222;
+    border-radius: 1.5rem;
+    padding: 1.5rem;
+    border: 1px solid #272e4a;
+}
+
+.recent-activity h3 {
+    margin-bottom: 1rem;
+    font-size: 1.2rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.activity-list {
+    list-style: none;
+}
+
+.activity-list li {
+    padding: 0.7rem 0;
+    border-bottom: 1px solid #20263f;
+    display: flex;
+    align-items: center;
+    gap: 0.7rem;
+    font-size: 0.9rem;
+}
+
+.activity-list li i {
+    color: #4ade80;
+    width: 1.4rem;
+}
+
+/* панель строителей */
+.panel-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    margin-bottom: 1.5rem;
+    gap: 1rem;
+}
+
+.panel-header h2 {
+    font-size: 1.5rem;
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+}
+
+.add-task-btn, .upload-audio-btn, .new-idea-btn {
+    background: linear-gradient(95deg, #3b4ecf, #562de0);
+    border: none;
+    padding: 0.6rem 1.2rem;
+    border-radius: 2rem;
+    font-weight: 600;
+    color: white;
+    cursor: pointer;
+    transition: 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.add-task-btn:hover, .upload-audio-btn:hover, .new-idea-btn:hover {
+    transform: scale(1.02);
+    box-shadow: 0 6px 16px rgba(86, 45, 224, 0.4);
+}
+
+.tasks-board {
+    display: flex;
+    gap: 2rem;
+    flex-wrap: wrap;
+    margin-bottom: 2rem;
+}
+
+.task-column {
+    flex: 1;
+    min-width: 260px;
+    background: #0e1120;
+    border-radius: 1.5rem;
+    padding: 1rem;
+}
+
+.column-title {
+    font-weight: 700;
+    padding: 0.6rem 0;
+    border-bottom: 2px solid #33416e;
+    margin-bottom: 1rem;
+}
+
+.task-card {
+    background: #161c30;
+    border-radius: 1rem;
+    padding: 1rem;
+    margin-bottom: 1rem;
+    border-left: 4px solid #f59e0b;
+}
+
+.task-card.completed {
+    border-left-color: #22c55e;
+    opacity: 0.8;
+}
+
+.task-title {
+    font-weight: 700;
+    margin-bottom: 0.5rem;
+}
+
+.task-assign {
+    font-size: 0.8rem;
+    color: #b9c4f0;
+    margin-bottom: 0.4rem;
+}
+
+.task-deadline {
+    font-size: 0.7rem;
+    color: #ffaa88;
+    margin: 0.5rem 0;
+}
+
+.complete-task {
+    background: #2a345e;
+    border: none;
+    border-radius: 1rem;
+    padding: 0.3rem 0.8rem;
+    font-size: 0.7rem;
+    color: white;
+    cursor: pointer;
+}
+
+.completed-icon {
+    color: #22c55e;
+    margin-top: 0.3rem;
+    display: inline-block;
+}
+
+.works-gallery {
+    background: #0d1020;
+    border-radius: 1.2rem;
+    padding: 1.2rem;
+    margin-top: 1rem;
+}
+
+.work-items {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.8rem;
+    margin-top: 0.8rem;
+}
+
+.work-item {
+    background: #1e243f;
+    padding: 0.4rem 1rem;
+    border-radius: 2rem;
+    font-size: 0.8rem;
+}
+
+/* аудио коллектор */
+.audio-collector {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 2rem;
+}
+
+.audio-player-list {
+    flex: 2;
+    min-width: 260px;
+}
+
+.audio-entry {
+    background: #111624;
+    border-radius: 1rem;
+    padding: 0.8rem;
+    margin-bottom: 1rem;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.8rem;
+}
+
+.audio-entry span:first-child {
+    font-weight: 500;
+    flex: 1;
+}
+
+audio {
+    max-width: 220px;
+    height: 36px;
+}
+
+.voice-actors-list {
+    flex: 1;
+    background: #0d1122;
+    border-radius: 1.2rem;
+    padding: 1.2rem;
+}
+
+.voice-actors-list h4 {
+    margin-bottom: 1rem;
+    font-size: 1.1rem;
+}
+
+.voice-actors-list ul {
+    list-style: none;
+}
+
+.voice-actors-list li {
+    padding: 0.5rem 0;
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+}
+
+/* идеи построек */
+.ideas-feed {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 1.5rem;
+    margin-top: 1rem;
+}
+
+.idea-card {
+    background: #12172e;
+    border-radius: 1.2rem;
+    padding: 1.2rem;
+    transition: 0.2s;
+    border: 1px solid #293052;
+}
+
+.idea-card h4 {
+    font-size: 1.2rem;
+    margin-bottom: 0.5rem;
+}
+
+.idea-card p {
+    font-size: 0.85rem;
+    color: #bfcbff;
+    margin-bottom: 0.8rem;
+}
+
+.idea-meta {
+    font-size: 0.7rem;
+    color: #aaafdf;
+}
+
+/* аудио библиотека */
+.filter-bar {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.filter-bar input {
+    background: #0b0e1a;
+    border: 1px solid #2f365b;
+    border-radius: 2rem;
+    padding: 0.5rem 1rem;
+    color: white;
+}
+
+.audio-library {
+    background: #0e1122;
+    border-radius: 1.3rem;
+    padding: 1rem;
+    overflow-x: auto;
+}
+
+.audio-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.audio-table th, .audio-table td {
+    text-align: left;
+    padding: 0.8rem 0.5rem;
+    border-bottom: 1px solid #242b48;
+}
+
+.audio-table audio {
+    max-width: 180px;
+}
+
+/* ========== FOOTER ========== */
+.hub-footer {
+    background: #070a14;
+    border-top: 1px solid #1e243f;
+    margin-top: 2rem;
+}
+
+.footer-container {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 2rem 2rem 1rem;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: 2rem;
+}
+
+.footer-col {
+    flex: 1;
+    min-width: 180px;
+}
+
+.footer-logo {
+    font-size: 1.4rem;
+    font-weight: 800;
+    background: linear-gradient(120deg, #cddcff, #8d9eff);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    margin-bottom: 0.5rem;
+}
+
+.footer-col p {
+    font-size: 0.8rem;
+    color: #9ea9da;
+    line-height: 1.4;
+}
+
+.footer-col h4 {
+    margin-bottom: 0.8rem;
+    font-size: 1rem;
+    font-weight: 600;
+}
+
+.footer-col ul {
+    list-style: none;
+}
+
+.footer-col li {
+    margin-bottom: 0.5rem;
+    font-size: 0.8rem;
+    color: #b5c0eb;
+}
+
+.footer-col a {
+    color: #b5c0eb;
+    text-decoration: none;
+    transition: color 0.2s;
+}
+
+.footer-col a:hover {
+    color: white;
+    text-decoration: underline;
+}
+
+.footer-bottom {
+    text-align: center;
+    padding: 1rem;
+    border-top: 1px solid #1a1f36;
+    font-size: 0.7rem;
+    color: #7a86b5;
+}
+
+/* ========== АДАПТИВ ========== */
+@media (max-width: 900px) {
+    .header-container {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    .hub-nav {
+        justify-content: center;
+        flex-wrap: wrap;
+    }
+    .user-shortcut {
+        justify-content: center;
+    }
+    .hub-main {
+        padding: 1rem;
+    }
+    .stats-grid {
+        grid-template-columns: 1fr 1fr;
+    }
+    .task-column {
+        min-width: 100%;
+    }
+}
+
+@media (max-width: 600px) {
+    .stats-grid {
+        grid-template-columns: 1fr;
+    }
+    .nav-tab span {
+        display: none;
+    }
+    .nav-tab i {
+        font-size: 1.3rem;
+    }
+    .nav-tab {
+        padding: 0.6rem 0.9rem;
+    }
+    .audio-entry {
+        flex-direction: column;
+        align-items: start;
+    }
+    audio {
+        max-width: 100%;
+    }
+}

@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="ru">
+
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+	<title>NZK StaffPanel</title>
+	<link rel="preconnect" href="https://fonts.googleapis.com">
+	<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+	<link
+		href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;14..32,400;14..32,500;14..32,600;14..32,700;14..32,800&display=swap"
+		rel="stylesheet">
+	<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+	<link rel="stylesheet" href="styles/hub.css">
+</head>
+
+<body>
+	<div class="hub-wrapper">
+		<!-- ХЕДЕР с динамическими вкладками -->
+		<header class="hub-header">
+			<div class="header-container">
+				<div class="logo-block">
+					<div class="logo-icon">
+						<i class="fas fa-cube"></i>
+					</div>
+					<div class="logo-text">
+						<span class="logo-nzk">NZK</span>
+						<span class="logo-sub">Staff Hub</span>
+					</div>
+				</div>
+
+				<!-- Навигационные вкладки (основные разделы хаба) -->
+				<nav class="hub-nav">
+					<button class="nav-tab active" data-tab="dashboard">
+						<i class="fas fa-chalkboard-user"></i>
+						<span>Обзор</span>
+					</button>
+					<button class="nav-tab" data-tab="builders">
+						<i class="fas fa-hard-hat"></i>
+						<span>Строители</span>
+					</button>
+					<button class="nav-tab" data-tab="voice-actors">
+						<i class="fas fa-microphone-alt"></i>
+						<span>Актёры озвучки</span>
+					</button>
+					<button class="nav-tab" data-tab="ideas">
+						<i class="fas fa-lightbulb"></i>
+						<span>Идеи построек</span>
+					</button>
+					<button class="nav-tab" data-tab="audio">
+						<i class="fas fa-head-side-headphones"></i>
+						<span>Звукоматериал</span>
+					</button>
+				</nav>
+
+				<div class="user-shortcut">
+					<div class="user-avatar">
+						<i class="fas fa-user-astronaut"></i>
+					</div>
+					<div class="user-meta">
+						<span class="user-name">Администратор</span>
+						<span class="user-role">NZK Lead</span>
+					</div>
+					<button class="logout-icon-btn" id="logoutHubBtn" title="Выйти">
+						<i class="fas fa-sign-out-alt"></i>
+					</button>
+				</div>
+			</div>
+		</header>
+
+		<!-- ОСНОВНОЙ КОНТЕНТ (MAIN) с панелями для каждой вкладки -->
+		<main class="hub-main">
+			<!-- Панель 1: Обзор / Дашборд -->
+			<div class="tab-content active" id="dashboard-tab">
+				<div class="welcome-section">
+					<h1><i class="fas fa-rocket"></i> Добро пожаловать в NZK StaffPanel</h1>
+					<p>Мотивационная панель для администрации, строителей и актёров озвучки. Отслеживайте задачи,
+						делитесь идеями и управляйте звуковым материалом.</p>
+				</div>
+
+				<div class="stats-grid">
+					<div class="stat-card">
+						<div class="stat-icon"><i class="fas fa-tasks"></i></div>
+						<div class="stat-info">
+							<span class="stat-value">0</span>
+							<span class="stat-label">Активных тасков</span>
+						</div>
+					</div>
+					<div class="stat-card">
+						<div class="stat-icon"><i class="fas fa-palette"></i></div>
+						<div class="stat-info">
+							<span class="stat-value">0</span>
+							<span class="stat-label">Идей построек</span>
+						</div>
+					</div>
+					<div class="stat-card">
+						<div class="stat-icon"><i class="fas fa-waveform"></i></div>
+						<div class="stat-info">
+							<span class="stat-value">0</span>
+							<span class="stat-label">Аудио файлов</span>
+						</div>
+					</div>
+					<div class="stat-card">
+						<div class="stat-icon"><i class="fas fa-users"></i></div>
+						<div class="stat-info">
+							<span class="stat-value">0</span>
+							<span class="stat-label">Сотрудников в работе</span>
+						</div>
+					</div>
+				</div>
+
+				<div class="recent-activity">
+					<h3><i class="fas fa-clock"></i> Последняя активность</h3>
+					<ul class="activity-list">
+						<li></li>
+					</ul>
+				</div>
+			</div>
+
+			<!-- Панель 2: Строители (таски + сохранение работ) -->
+			<div class="tab-content" id="builders-tab">
+				<div class="panel-header">
+					<h2><i class="fas fa-hard-hat"></i> Управление задачами строителей</h2>
+					<button class="add-task-btn"><i class="fas fa-plus"></i> Выдать таск</button>
+				</div>
+				<div class="tasks-board">
+					<div class="task-column">
+						<div class="column-title">В работе</div>
+
+					</div>
+					<div class="task-column">
+						<div class="column-title">Готовые работы</div>
+
+					</div>
+				</div>
+				<div class="works-gallery">
+					<h3><i class="fas fa-archive"></i> Архив построек</h3>
+					<div class="work-items">
+
+					</div>
+				</div>
+			</div>
+
+			<!-- Панель 3: Актёры озвучки + аудио коллектор -->
+			<div class="tab-content" id="voice-actors-tab">
+				<div class="panel-header">
+					<h2><i class="fas fa-microphone-alt"></i> Звукоматериал & актёры</h2>
+					<button class="upload-audio-btn"><i class="fas fa-upload"></i> Загрузить аудио</button>
+				</div>
+				<div class="audio-collector">
+					<div class="audio-player-list">
+
+					</div>
+					<div class="voice-actors-list">
+						<h4>Состав актёров</h4>
+						<ul>
+							<li></li>
+						</ul>
+					</div>
+				</div>
+			</div>
+
+			<!-- Панель 4: Идеи построек (заливка идей) -->
+			<div class="tab-content" id="ideas-tab">
+				<div class="panel-header">
+					<h2><i class="fas fa-lightbulb"></i> Банк идей построек</h2>
+					<button class="new-idea-btn"><i class="fas fa-pen-fancy"></i> Добавить идею</button>
+				</div>
+				<div class="ideas-feed">
+
+				</div>
+			</div>
+
+			<!-- Панель 5: Звукоматериал (расширенный) -->
+			<div class="tab-content" id="audio-tab">
+				<div class="panel-header">
+					<h2><i class="fas fa-head-side-headphones"></i> Полная библиотека звуков</h2>
+					<div class="filter-bar">
+						<input type="text" placeholder="Поиск аудио...">
+						<button><i class="fas fa-search"></i></button>
+					</div>
+				</div>
+				<div class="audio-library">
+					<table class="audio-table">
+						<thead>
+							<tr>
+								<th>Название</th>
+								<th>Тип</th>
+								<th>Автор/актёр</th>
+								<th>Прослушать</th>
+							</tr>
+						</thead>
+						<tbody>
+
+						</tbody>
+					</table>
+				</div>
+			</div>
+		</main>
+
+		<!-- ФУТЕР с полезными ссылками и информацией -->
+		<footer class="hub-footer">
+			<div class="footer-container">
+				<div class="footer-col">
+					<div class="footer-logo">NZK Production</div>
+					<p>Мотивационная панель для команды. Все работы, таски, идеи и аудио — в одном месте.</p>
+				</div>
+				<div class="footer-col">
+					<h4>Навигация</h4>
+					<ul>
+						<li><a href="#" data-nav-footer="dashboard">Обзор хаба</a></li>
+						<li><a href="#" data-nav-footer="builders">Задачи строителей</a></li>
+						<li><a href="#" data-nav-footer="voice-actors">Актёры озвучки</a></li>
+						<li><a href="#" data-nav-footer="ideas">Идеи построек</a></li>
+					</ul>
+				</div>
+				<div class="footer-col">
+					<h4>Команда NZK</h4>
+					<ul>
+						<li><i class="fab fa-discord"></i> Discord: nzk.official</li>
+						<li><i class="fas fa-envelope"></i> support@nzk-team.com</li>
+						<li><i class="fas fa-chart-line"></i> Статус: активны 🔥</li>
+					</ul>
+				</div>
+			</div>
+			<div class="footer-bottom">
+				<p>© 2025 NZK StaffPanel — Все права защищены. Версия 2.0 | Мотивация и порядок</p>
+			</div>
+		</footer>
+	</div>
+
+	<script src="scripts/hub.js">
+	</script>
+</body>
+
+</html>
