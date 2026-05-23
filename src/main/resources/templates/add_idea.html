@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="ru">
+<html lang="ru" xmlns:th="http://www.thymeleaf.org">
 
 <head>
 	<meta charset="UTF-8">
@@ -9,62 +9,12 @@
 		href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600;14..32,700&display=swap"
 		rel="stylesheet">
 	<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
-	<link rel="stylesheet" href="styles/add_idea.css">
+	<link rel="stylesheet" th:href="styles/add_idea.css">
 </head>
 
+<header th:insert="blocks/header :: header"></header>
+
 <body>
-
-	<header class="hub-header">
-		<div class="header-container">
-			<div class="logo-block">
-				<div class="logo-icon">
-					<i class="fas fa-cube"></i>
-				</div>
-				<div class="logo-text">
-					<span class="logo-nzk">NZK</span>
-					<span class="logo-sub">Staff Hub</span>
-				</div>
-			</div>
-
-			<!-- Навигационные вкладки -->
-			<nav class="hub-nav">
-				<button class="nav-tab" data-tab="dashboard">
-					<i class="fas fa-chalkboard-user"></i>
-					<span>Обзор</span>
-				</button>
-				<button class="nav-tab" data-tab="builders">
-					<i class="fas fa-hard-hat"></i>
-					<span>Строители</span>
-				</button>
-				<button class="nav-tab" data-tab="voice-actors">
-					<i class="fas fa-microphone-alt"></i>
-					<span>Актёры озвучки</span>
-				</button>
-				<button class="nav-tab active" data-tab="ideas">
-					<i class="fas fa-lightbulb"></i>
-					<span>Идеи построек</span>
-				</button>
-				<button class="nav-tab" data-tab="audio">
-					<i class="fas fa-head-side-headphones"></i>
-					<span>Звукоматериал</span>
-				</button>
-			</nav>
-
-			<div class="user-shortcut">
-				<div class="user-avatar">
-					<i class="fas fa-user-astronaut"></i>
-				</div>
-				<div class="user-meta">
-					<span class="user-name">Администратор</span>
-					<span class="user-role">NZK Lead</span>
-				</div>
-				<button class="logout-icon-btn" id="logoutHubBtn" title="Выйти">
-					<i class="fas fa-sign-out-alt"></i>
-				</button>
-			</div>
-		</div>
-	</header>
-
 	<div class="page-wrapper">
 		<div class="idea-card">
 			<div class="card-header">
@@ -152,36 +102,9 @@
 	</div>
 
 	<!-- футер -->
-	<footer class="hub-footer">
-		<div class="footer-container">
-			<div class="footer-col">
-				<div class="footer-logo">NZK Production</div>
-				<p>Мотивационная панель для команды. Все работы, таски, идеи и аудио — в одном месте.</p>
-			</div>
-			<div class="footer-col">
-				<h4>Навигация</h4>
-				<ul>
-					<li><a href="#" data-nav-footer="dashboard">Обзор хаба</a></li>
-					<li><a href="#" data-nav-footer="builders">Задачи строителей</a></li>
-					<li><a href="#" data-nav-footer="voice-actors">Актёры озвучки</a></li>
-					<li><a href="#" data-nav-footer="ideas">Идеи построек</a></li>
-				</ul>
-			</div>
-			<div class="footer-col">
-				<h4>Команда NZK</h4>
-				<ul>
-					<li><i class="fab fa-discord"></i> Discord: nzk.official</li>
-					<li><i class="fas fa-envelope"></i> support@nzk-team.com</li>
-					<li><i class="fas fa-chart-line"></i> Статус: активны 🔥</li>
-				</ul>
-			</div>
-		</div>
-		<div class="footer-bottom">
-			<p>© 2025 NZK StaffPanel — Все права защищены. Версия 2.0 | Мотивация и порядок</p>
-		</div>
-	</footer>
+	<div th:insert="blocks/footer :: footer"></div>
 
-	<script src="scripts/add_idea.js"></script>
+	<script src="src/main/resources/static/scripts/add_idea.js"></script>
 
 </body>
 

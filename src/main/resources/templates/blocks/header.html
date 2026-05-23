@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<div th:fragment="header">
+    <header class="hub-header">
+        <div class="header-container">
+            <div class="logo-block">
+                <div class="logo-icon">
+                    <i class="fas fa-cube"></i>
+                </div>
+                <div class="logo-text">
+                    <span class="logo-nzk">NZK</span>
+                    <span class="logo-sub">Staff Hub</span>
+                </div>
+            </div>
+
+            <nav class="hub-nav">
+                <button class="nav-tab active" data-tab="dashboard">
+                    <i class="fas fa-chalkboard-user"></i>
+                    <span>Обзор</span>
+                </button>
+                <button class="nav-tab" data-tab="builders">
+                    <i class="fas fa-hard-hat"></i>
+                    <span>Строители</span>
+                </button>
+                <button class="nav-tab" data-tab="voice-actors">
+                    <i class="fas fa-microphone-alt"></i>
+                    <span>Актёры озвучки</span>
+                </button>
+                <button class="nav-tab" data-tab="ideas">
+                    <i class="fas fa-lightbulb"></i>
+                    <span>Идеи построек</span>
+                </button>
+                <button class="nav-tab" data-tab="audio">
+                    <i class="fas fa-head-side-headphones"></i>
+                    <span>Звукоматериал</span>
+                </button>
+            </nav>
+
+            <div class="user-shortcut">
+                <div class="user-avatar">
+                    <i class="fas fa-user-astronaut"></i>
+                </div>
+                <div class="user-meta">
+                    <span class="user-name" th:text="${username}">Администратор</span>
+                    <span class="user-role" th:text="${isAdmin} ? 'Администратор' : 'Сотрудник'">Сотрудник</span>
+                </div>
+                <form th:action="@{/logout}" method="post" style="margin: 0;">
+                    <button type="submit" class="logout-icon-btn" title="Выйти">
+                        <i class="fas fa-sign-out-alt"></i>
+                    </button>
+                </form>
+            </div>
+        </div>
+    </header>
+</div>
+</html>

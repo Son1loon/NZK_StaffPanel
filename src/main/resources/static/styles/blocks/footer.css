@@ -1,0 +1,72 @@
+/* ========== FOOTER ========== */
+.hub-footer {
+    background: #070a14;
+    border-top: 1px solid #1e243f;
+    margin-top: 2rem;
+}
+
+.footer-container {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 2rem 2rem 1rem;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: 2rem;
+}
+
+.footer-col {
+    flex: 1;
+    min-width: 180px;
+}
+
+.footer-logo {
+    font-size: 1.4rem;
+    font-weight: 800;
+    background: linear-gradient(120deg, #cddcff, #8d9eff);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    margin-bottom: 0.5rem;
+}
+
+.footer-col p {
+    font-size: 0.8rem;
+    color: #9ea9da;
+    line-height: 1.4;
+}
+
+.footer-col h4 {
+    margin-bottom: 0.8rem;
+    font-size: 1rem;
+    font-weight: 600;
+}
+
+.footer-col ul {
+    list-style: none;
+}
+
+.footer-col li {
+    margin-bottom: 0.5rem;
+    font-size: 0.8rem;
+    color: #b5c0eb;
+}
+
+.footer-col a {
+    color: #b5c0eb;
+    text-decoration: none;
+    transition: color 0.2s;
+}
+
+.footer-col a:hover {
+    color: white;
+    text-decoration: underline;
+}
+
+.footer-bottom {
+    text-align: center;
+    padding: 1rem;
+    border-top: 1px solid #1a1f36;
+    font-size: 0.7rem;
+    color: #7a86b5;
+}
