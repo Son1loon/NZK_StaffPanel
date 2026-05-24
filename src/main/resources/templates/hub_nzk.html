@@ -5,6 +5,8 @@
 	<meta charset="UTF-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 	<title>NZK StaffPanel</title>
+	<meta name="_csrf" th:content="${_csrf.token}"/>
+	<meta name="_csrf_header" th:content="${_csrf.headerName}"/>
 	<link rel="preconnect" href="https://fonts.googleapis.com">
 	<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 	<link
@@ -26,8 +28,8 @@
 			<div class="welcome-section">
 				<h1><i class="fas fa-rocket"></i> Добро пожаловать, <span th:text="${username}">User</span>!</h1>
 				<p>Мотивационная панель для строителей, актёров озвучки, монтажеров.</p>
-				<div th:if="${isAdmin}" style="padding: 10px; border-radius: 10px; margin-top: 10px;">
-					Приветствую дома Администратора ня...
+				<div th:if="${isAdmin}" style="padding: 10px; border-radius: 10px; margin-top: 10px; background: rgba(102, 126, 234, 0.2);">
+					<i class="fas fa-crown"></i> Приветствую, Администратор!
 				</div>
 			</div>
 
@@ -57,8 +59,16 @@
 					<div class="stat-icon"><i class="fas fa-users"></i></div>
 					<div class="stat-info">
 						<span class="stat-value" id="usersCount">0</span>
-						<span class="stat-label">Сотрудников</span>
+						<span class="stat-label">Всего участников</span>
 					</div>
+				</div>
+			</div>
+
+			<!-- СЕКЦИЯ УЧАСТНИКОВ ПО РОЛЯМ -->
+			<div class="team-section">
+				<h2 class="section-title"><i class="fas fa-users-viewfinder"></i> Команда NZK</h2>
+				<div id="teamMembersContainer" class="team-roles-grid">
+					<div class="loading-spinner">Загрузка команды...</div>
 				</div>
 			</div>
 		</div>
@@ -101,8 +111,33 @@
 			</div>
 			<div id="audioLibraryContainer">...</div>
 		</div>
-	</main>
 
+		<!-- Панель: Заявки на регистрацию (только для админов) -->
+		<div th:if="${isAdmin}" class="tab-content" id="registration-requests-tab">
+			<div class="panel-header">
+				<h2><i class="fas fa-clipboard-list"></i> Заявки на регистрацию</h2>
+				<button class="refresh-requests-btn" id="refreshRequestsBtn">
+					<i class="fas fa-sync-alt"></i> Обновить
+				</button>
+			</div>
+			<div id="requestsContainer" class="requests-container">
+				<div class="loading-spinner">Загрузка заявок...</div>
+			</div>
+		</div>
+
+		<!-- Панель 7: Управление пользователями (ТОЛЬКО ДЛЯ АДМИНОВ) -->
+		<div th:if="${isAdmin}" class="tab-content" id="users-management-tab">
+			<div class="panel-header">
+				<h2><i class="fas fa-users-gear"></i> Управление пользователями</h2>
+				<button class="refresh-users-btn" id="refreshUsersBtn">
+					<i class="fas fa-sync-alt"></i> Обновить
+				</button>
+			</div>
+			<div id="usersManagementContainer" class="users-management-container">
+				<div class="loading-spinner">Загрузка пользователей...</div>
+			</div>
+		</div>
+	</main>
 	<div th:replace="~{blocks/footer :: footer}"></div>
 </div>
 

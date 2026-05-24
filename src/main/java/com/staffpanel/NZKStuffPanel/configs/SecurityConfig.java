@@ -1,6 +1,5 @@
 package com.staffpanel.NZKStuffPanel.configs;
 
-
 import com.staffpanel.NZKStuffPanel.services.CustomUserDetailsService;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -27,9 +26,17 @@ public class SecurityConfig {
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
                 .authorizeHttpRequests(auth -> auth
+                        // Публичные страницы и ресурсы
                         .requestMatchers("/", "/login", "/styles/**", "/scripts/**",
-                                "/css/**", "/js/**", "/api/auth/**").permitAll()
+                                "/css/**", "/js/**").permitAll()
+                        // API для регистрации (ДОБАВИТЬ ЭТУ СТРОКУ!)
+                        .requestMatchers("/api/register-request").permitAll()
+                        // API для статики и прочего
+                        .requestMatchers("/api/auth/**").permitAll()
+                        // Админские эндпоинты
                         .requestMatchers("/admin/**").hasRole("ADMIN")
+                        .requestMatchers("/api/admin/**").hasRole("ADMIN")
+                        // Всё остальное требует аутентификации
                         .anyRequest().authenticated()
                 )
                 .formLogin(form -> form
@@ -45,6 +52,10 @@ public class SecurityConfig {
                         .invalidateHttpSession(true)
                         .clearAuthentication(true)
                         .permitAll()
+                )
+                // ВАЖНО: отключаем CSRF для API регистрации
+                .csrf(csrf -> csrf
+                        .ignoringRequestMatchers("/api/register-request")
                 )
                 .userDetailsService(userDetailsService);
 

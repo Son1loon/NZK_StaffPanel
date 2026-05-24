@@ -1,8 +1,9 @@
-/* ========== FOOTER ========== */
+/* ========== FOOTER СТИЛИ ========== */
 .hub-footer {
     background: #070a14;
     border-top: 1px solid #1e243f;
-    margin-top: 2rem;
+    margin-top: auto;
+    width: 100%;
 }
 
 .footer-container {
@@ -69,4 +70,35 @@
     border-top: 1px solid #1a1f36;
     font-size: 0.7rem;
     color: #7a86b5;
+}
+
+/* ========== АДАПТИВ ========== */
+@media (max-width: 768px) {
+    .footer-container {
+        flex-direction: column;
+        text-align: center;
+        padding: 1.5rem 1rem 1rem;
+    }
+
+    .footer-col {
+        min-width: auto;
+    }
+
+    .footer-col li {
+        justify-content: center;
+    }
+}
+
+@media (max-width: 480px) {
+    .footer-logo {
+        font-size: 1.2rem;
+    }
+
+    .footer-col p {
+        font-size: 0.7rem;
+    }
+
+    .footer-bottom p {
+        font-size: 0.6rem;
+    }
 }

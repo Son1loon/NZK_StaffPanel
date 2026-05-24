@@ -24,15 +24,24 @@
                 </button>
                 <button class="nav-tab" data-tab="voice-actors">
                     <i class="fas fa-microphone-alt"></i>
-                    <span>Актёры озвучки</span>
+                    <span>Актёры</span>
                 </button>
                 <button class="nav-tab" data-tab="ideas">
                     <i class="fas fa-lightbulb"></i>
-                    <span>Идеи построек</span>
+                    <span>Идеи</span>
                 </button>
                 <button class="nav-tab" data-tab="audio">
                     <i class="fas fa-head-side-headphones"></i>
-                    <span>Звукоматериал</span>
+                    <span>Звуки</span>
+                </button>
+                <button th:if="${isAdmin}" class="nav-tab" data-tab="registration-requests">
+                    <i class="fas fa-clipboard-list"></i>
+                    <span>Заявки</span>
+                    <span class="request-badge" id="requestsBadge" style="display: none;">!</span>
+                </button>
+                <button th:if="${isAdmin}" class="nav-tab" data-tab="users-management">
+                    <i class="fas fa-users-gear"></i>
+                    <span>Управление</span>
                 </button>
             </nav>
 
@@ -41,10 +50,10 @@
                     <i class="fas fa-user-astronaut"></i>
                 </div>
                 <div class="user-meta">
-                    <span class="user-name" th:text="${username}">Администратор</span>
-                    <span class="user-role" th:text="${isAdmin} ? 'Администратор' : 'Сотрудник'">Сотрудник</span>
+                    <span class="user-name" th:text="${username}">Admin</span>
+                    <span class="user-role" th:text="${isAdmin} ? 'Админ' : 'Сотрудник'">Админ</span>
                 </div>
-                <form th:action="@{/logout}" method="post" style="margin: 0;">
+                <form th:action="@{/logout}" method="post" style="margin: 0; display: inline;">
                     <button type="submit" class="logout-icon-btn" title="Выйти">
                         <i class="fas fa-sign-out-alt"></i>
                     </button>
