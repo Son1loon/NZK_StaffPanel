@@ -11,7 +11,9 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 
+
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
 @RestController
@@ -249,17 +251,14 @@ public class ApiController {
 
         for (User user : users) {
             Map<String, Object> userMap = new HashMap<>();
-            userMap.put("id", user.getId());
+            userMap.put("id", user.getId());  // <-- ВАЖНО: добавляем id
             userMap.put("username", user.getUsername());
 
-            // Получаем роли пользователя (убираем префикс ROLE_)
             List<String> roles = user.getRoles().stream()
                     .map(role -> role.name().replace("ROLE_", ""))
                     .collect(Collectors.toList());
             userMap.put("roles", roles);
-
-            // Статус (пока все online, потом можно добавить last_login)
-            userMap.put("status", "online");
+            userMap.put("status", "offline"); // временно
 
             response.add(userMap);
         }
@@ -359,5 +358,32 @@ public class ApiController {
         request.setStatus("REJECTED");
         requestRepository.save(request);
         return ResponseEntity.ok(Map.of("success", "Заявка отклонена"));
+    }
+
+    // ========== ОНЛАЙН СТАТУСЫ ПОЛЬЗОВАТЕЛЕЙ ==========
+// Хранилище последней активности пользователей
+    private final Map<Long, Long> userLastActivity = new ConcurrentHashMap<>();
+
+    @PostMapping("/heartbeat")
+    public ResponseEntity<?> updateHeartbeat(@RequestBody Map<String, Long> data) {
+        Long userId = data.get("userId");
+        if (userId != null) {
+            userLastActivity.put(userId, System.currentTimeMillis());
+            return ResponseEntity.ok(Map.of("success", true));
+        }
+        return ResponseEntity.badRequest().body(Map.of("error", "No userId"));
+    }
+
+    @GetMapping("/online-users")
+    public ResponseEntity<?> getOnlineUsers() {
+        long currentTime = System.currentTimeMillis();
+        long onlineThreshold = 60000; // 60 секунд - считаем пользователя онлайн
+
+        List<Long> onlineUserIds = userLastActivity.entrySet().stream()
+                .filter(entry -> (currentTime - entry.getValue()) < onlineThreshold)
+                .map(Map.Entry::getKey)
+                .collect(Collectors.toList());
+
+        return ResponseEntity.ok(Map.of("onlineUserIds", onlineUserIds));
     }
 }

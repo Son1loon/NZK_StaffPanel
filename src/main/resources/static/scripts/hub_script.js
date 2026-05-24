@@ -412,15 +412,22 @@ notificationStyle.textContent = `
 `;
 document.head.appendChild(notificationStyle);
 
-// ========== ЗАГРУЗКА УЧАСТНИКОВ ПО РОЛЯМ ==========
+// ========== ЗАГРУЗКА УЧАСТНИКОВ ПО РОЛЯМ С ОНЛАЙН-СТАТУСОМ И СОРТИРОВКОЙ ==========
 async function loadTeamMembers() {
     const container = document.getElementById('teamMembersContainer');
     if (!container) return;
 
     try {
-        const response = await fetch('/api/admin/all-users');
-        if (response.ok) {
-            let users = await response.json();
+        // Получаем список пользователей
+        const usersResponse = await fetch('/api/admin/all-users');
+        // Получаем список онлайн пользователей
+        const onlineResponse = await fetch('/api/online-users');
+
+        if (usersResponse.ok && onlineResponse.ok) {
+            let users = await usersResponse.json();
+            const onlineData = await onlineResponse.json();
+            const onlineUserIds = new Set(onlineData.onlineUserIds || []);
+
             const currentUser = window.userData.username;
             const isAdmin = window.userData.isAdmin;
 
@@ -430,11 +437,14 @@ async function loadTeamMembers() {
             for (const user of users) {
                 if (!userIds.has(user.id)) {
                     userIds.add(user.id);
+                    // Добавляем поле isOnline для сортировки
+                    user.isOnline = onlineUserIds.has(user.id);
                     uniqueUsers.push(user);
                 }
             }
             users = uniqueUsers;
 
+            // Группируем пользователей по ролям
             const groupedUsers = {
                 'ADMIN': [],
                 'BUILDER': [],
@@ -495,6 +505,17 @@ async function loadTeamMembers() {
                 }
             });
 
+            // СОРТИРОВКА: сначала онлайн, потом оффлайн
+            for (const role in groupedUsers) {
+                groupedUsers[role].sort((a, b) => {
+                    // Онлайн первыми
+                    if (a.isOnline && !b.isOnline) return -1;
+                    if (!a.isOnline && b.isOnline) return 1;
+                    // Если оба онлайн или оба оффлайн - сортируем по имени
+                    return a.username.localeCompare(b.username);
+                });
+            }
+
             let html = '';
             for (const [role, members] of Object.entries(groupedUsers)) {
                 if (members.length === 0) continue;
@@ -508,6 +529,7 @@ async function loadTeamMembers() {
                 `;
                 members.forEach(member => {
                     const isCurrentUser = member.username === currentUser;
+                    const isOnline = member.isOnline;
                     html += `
                         <div class="member-card" data-user-id="${member.id}">
                             <div class="member-avatar">
@@ -517,7 +539,7 @@ async function loadTeamMembers() {
                                 ${escapeHtml(member.username)}
                                 ${isCurrentUser ? '<span class="current-user-badge">(Вы)</span>' : ''}
                             </div>
-                            <div class="member-status ${member.status === 'online' ? 'online' : 'offline'}"></div>
+                            <div class="member-status ${isOnline ? 'online' : 'offline'}" title="${isOnline ? 'Онлайн' : 'Оффлайн'}"></div>
                     `;
                     if (isAdmin && !isCurrentUser) {
                         html += `
@@ -539,6 +561,62 @@ async function loadTeamMembers() {
     } catch (error) {
         console.error('Ошибка загрузки участников:', error);
         container.innerHTML = '<div class="error-message">Ошибка загрузки команды</div>';
+    }
+}
+
+// ========== HEARTBEAT (ОБНОВЛЕНИЕ СТАТУСА ОНЛАЙН) ==========
+let heartbeatInterval = null;
+let currentUserId = null;
+
+async function getCurrentUserId() {
+    try {
+        const response = await fetch('/api/admin/all-users');
+        if (response.ok) {
+            const users = await response.json();
+            const currentUser = window.userData.username;
+            const user = users.find(u => u.username === currentUser);
+            if (user) {
+                currentUserId = user.id;
+                return currentUserId;
+            }
+        }
+    } catch (error) {
+        console.error('Ошибка получения ID пользователя:', error);
+    }
+    return null;
+}
+
+async function sendHeartbeat() {
+    if (!currentUserId) {
+        currentUserId = await getCurrentUserId();
+    }
+    if (currentUserId) {
+        try {
+            const csrf = getCsrfToken();
+            const headers = { 'Content-Type': 'application/json' };
+            if (csrf) headers[csrf.header] = csrf.token;
+
+            await fetch('/api/heartbeat', {
+                method: 'POST',
+                headers: headers,
+                body: JSON.stringify({ userId: currentUserId })
+            });
+        } catch (error) {
+            console.error('Heartbeat error:', error);
+        }
+    }
+}
+
+function startHeartbeat() {
+    if (heartbeatInterval) clearInterval(heartbeatInterval);
+    sendHeartbeat(); // сразу отправляем
+    heartbeatInterval = setInterval(sendHeartbeat, 30000); // каждые 30 секунд
+}
+
+function stopHeartbeat() {
+    if (heartbeatInterval) {
+        clearInterval(heartbeatInterval);
+        heartbeatInterval = null;
     }
 }
 
@@ -901,12 +979,28 @@ async function rejectRequest(requestId) {
 }
 
 // ========== ИНИЦИАЛИЗАЦИЯ ==========
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
     initTabs();
     initRegistrationForm();
+
+    // Запускаем heartbeat
+    await getCurrentUserId();
+    startHeartbeat();
+
+    // Останавливаем heartbeat при закрытии/уходе со страницы
+    window.addEventListener('beforeunload', () => {
+        stopHeartbeat();
+    });
 
     document.querySelector('.add-task-btn')?.addEventListener('click', () => window.location.href = '/give_tusk_form');
     document.querySelector('.upload-audio-btn')?.addEventListener('click', () => alert('🎙️ Загрузка аудио будет доступна позже'));
     document.querySelector('.new-idea-btn')?.addEventListener('click', () => window.location.href = '/add_idea');
     document.getElementById('refreshRequestsBtn')?.addEventListener('click', () => loadRegistrationRequests());
+
+    // Обновляем статусы каждые 30 секунд
+    setInterval(async () => {
+        if (document.querySelector('#dashboard-tab.active')) {
+            await loadTeamMembers();
+        }
+    }, 30000);
 });
