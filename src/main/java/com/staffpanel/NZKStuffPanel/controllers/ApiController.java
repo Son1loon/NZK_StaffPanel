@@ -386,4 +386,27 @@ public class ApiController {
 
         return ResponseEntity.ok(Map.of("onlineUserIds", onlineUserIds));
     }
+
+    // ========== ПОЛУЧИТЬ ВСЕХ ПОЛЬЗОВАТЕЛЕЙ ДЛЯ ВСЕХ (БЕЗ АДМИН-ПРАВ) ==========
+    @GetMapping("/public-users")
+    public ResponseEntity<?> getPublicUsers() {
+        List<User> users = userRepository.findAll();
+        List<Map<String, Object>> response = new ArrayList<>();
+
+        for (User user : users) {
+            Map<String, Object> userMap = new HashMap<>();
+            userMap.put("id", user.getId());
+            userMap.put("username", user.getUsername());
+
+            // Получаем роли пользователя (убираем префикс ROLE_)
+            List<String> roles = user.getRoles().stream()
+                    .map(role -> role.name().replace("ROLE_", ""))
+                    .collect(Collectors.toList());
+            userMap.put("roles", roles);
+
+            response.add(userMap);
+        }
+
+        return ResponseEntity.ok(response);
+    }
 }

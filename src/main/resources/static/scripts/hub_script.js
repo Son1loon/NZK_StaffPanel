@@ -413,13 +413,14 @@ notificationStyle.textContent = `
 document.head.appendChild(notificationStyle);
 
 // ========== ЗАГРУЗКА УЧАСТНИКОВ ПО РОЛЯМ С ОНЛАЙН-СТАТУСОМ И СОРТИРОВКОЙ ==========
+// ========== ЗАГРУЗКА УЧАСТНИКОВ ПО РОЛЯМ (ДЛЯ ВСЕХ) ==========
 async function loadTeamMembers() {
     const container = document.getElementById('teamMembersContainer');
     if (!container) return;
 
     try {
-        // Получаем список пользователей
-        const usersResponse = await fetch('/api/admin/all-users');
+        // Получаем список пользователей (публичный эндпоинт)
+        const usersResponse = await fetch('/api/public-users');
         // Получаем список онлайн пользователей
         const onlineResponse = await fetch('/api/online-users');
 
@@ -508,10 +509,8 @@ async function loadTeamMembers() {
             // СОРТИРОВКА: сначала онлайн, потом оффлайн
             for (const role in groupedUsers) {
                 groupedUsers[role].sort((a, b) => {
-                    // Онлайн первыми
                     if (a.isOnline && !b.isOnline) return -1;
                     if (!a.isOnline && b.isOnline) return 1;
-                    // Если оба онлайн или оба оффлайн - сортируем по имени
                     return a.username.localeCompare(b.username);
                 });
             }
@@ -541,6 +540,7 @@ async function loadTeamMembers() {
                             </div>
                             <div class="member-status ${isOnline ? 'online' : 'offline'}" title="${isOnline ? 'Онлайн' : 'Оффлайн'}"></div>
                     `;
+                    // Кнопка удаления ТОЛЬКО ДЛЯ АДМИНОВ И НЕ ДЛЯ СЕБЯ
                     if (isAdmin && !isCurrentUser) {
                         html += `
                             <div class="member-actions">
@@ -570,7 +570,7 @@ let currentUserId = null;
 
 async function getCurrentUserId() {
     try {
-        const response = await fetch('/api/admin/all-users');
+        const response = await fetch('/api/public-users');
         if (response.ok) {
             const users = await response.json();
             const currentUser = window.userData.username;
