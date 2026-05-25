@@ -625,12 +625,18 @@ async function loadUsersManagement() {
     const container = document.getElementById('usersManagementContainer');
     if (!container) return;
 
+    // Проверяем права администратора
+    const isAdmin = await checkAdminRights();
+    if (!isAdmin) {
+        container.innerHTML = '<div class="error-message">⛔ Доступ запрещён. Требуются права администратора.</div>';
+        return;
+    }
+
     try {
         const response = await fetch('/api/admin/all-users');
         if (response.ok) {
             let users = await response.json();
             const currentUser = window.userData.username;
-            const isAdmin = window.userData.isAdmin;
 
             // Убираем дубликаты по id
             const uniqueUsers = [];
@@ -678,7 +684,7 @@ async function loadUsersManagement() {
                                 ${currentRoles.map(role => `
                                     <span class="role-badge role-${role.toLowerCase()}">
                                         ${getRoleName(role)}
-                                        ${isAdmin ? `<button class="remove-role-btn" onclick="removeRoleFromUser(${user.id}, '${role}')" title="Удалить роль">✖</button>` : ''}
+                                        <button class="remove-role-btn" onclick="removeRoleFromUser(${user.id}, '${role}')" title="Удалить роль">✖</button>
                                     </span>
                                 `).join('')}
                                 ${currentRoles.length === 0 ? '<span class="no-roles">Нет ролей</span>' : ''}
@@ -686,7 +692,7 @@ async function loadUsersManagement() {
                         </td>
                         <td style="text-align: center;">
                             <div class="role-selector" style="justify-content: center;">
-                                <select class="role-select" id="select-${user.id}" ${!isAdmin ? 'disabled' : ''} style="width: 140px;">
+                                <select class="role-select" id="select-${user.id}" style="width: 140px;">
                                     <option value="">-- Выбрать роль --</option>
                                     <option value="ADMIN">👑 Администратор</option>
                                     <option value="BUILDER">🏗️ Строитель</option>
@@ -694,28 +700,28 @@ async function loadUsersManagement() {
                                     <option value="VOICE_ACTOR">🎙️ Актёр озвучки</option>
                                     <option value="ANIMATOR">🎬 Аниматор</option>
                                 </select>
-                                <button class="add-role-btn" data-user-id="${user.id}" ${!isAdmin ? 'disabled' : ''} style="margin-left: 5px;">
+                                <button class="add-role-btn" data-user-id="${user.id}" style="margin-left: 5px;">
                                     <i class="fas fa-plus"></i>
                                 </button>
                             </div>
                         </td>
                         <td style="text-align: center;">
                             <div class="role-selector" style="justify-content: center;">
-                                <select class="role-select-remove" id="remove-select-${user.id}" ${!isAdmin ? 'disabled' : ''} style="width: 140px;">
+                                <select class="role-select-remove" id="remove-select-${user.id}" style="width: 140px;">
                                     <option value="">-- Выбрать роль --</option>
                                     ${currentRoles.map(role => `<option value="${role}">${getRoleName(role)}</option>`).join('')}
                                 </select>
-                                <button class="remove-role-btn-table" data-user-id="${user.id}" ${!isAdmin ? 'disabled' : ''} style="margin-left: 5px;">
+                                <button class="remove-role-btn-table" data-user-id="${user.id}" style="margin-left: 5px;">
                                     <i class="fas fa-minus"></i>
                                 </button>
                             </div>
                         </td>
                         <td style="text-align: center;">
-                            ${!isCurrentUser && isAdmin ? `
+                            ${!isCurrentUser ? `
                                 <button class="delete-user-table-btn" onclick="deleteUser(${user.id}, '${escapeHtml(user.username)}')" style="margin: 0 auto;">
                                     <i class="fas fa-trash"></i> Удалить
                                 </button>
-                            ` : isCurrentUser ? '<span class="self-hint">Вы не можете удалить себя</span>' : '<span class="self-hint">Нет прав</span>'}
+                            ` : '<span class="self-hint">Вы не можете удалить себя</span>'}
                         </td>
                     </tr>
                 `;
@@ -797,23 +803,17 @@ async function addRoleToUser(userId, role) {
                     });
 
                     if (updateResponse.ok) {
-                        showNotification(`✅ Роль ${getRoleName(role)} добавлена`, 'success');
+                        showNotification(`✅ Роль ${getRoleName(role)} добавлена пользователю ${user.username}`, 'success');
 
-                        const currentUser = window.userData.username;
-                        if (user.username === currentUser) {
-                            // Если добавили ADMIN себе - перезагружаем страницу
-                            if (role === 'ADMIN') {
-                                showNotification('👑 Вы стали администратором! Страница перезагружается...', 'success');
-                                setTimeout(() => window.location.reload(), 1500);
-                            } else {
-                                await loadUsersManagement();
-                                await loadTeamMembers();
-                                await loadStats();
-                            }
-                        } else {
-                            await loadUsersManagement();
-                            await loadTeamMembers();
-                            await loadStats();
+                        // Просто обновляем данные без перезагрузки
+                        await loadUsersManagement();
+                        await loadTeamMembers();
+                        await loadStats();
+
+                        // Проверяем права заново (если это текущий пользователь)
+                        if (user.username === window.userData.username) {
+                            await checkAdminRights();
+                            showNotification('👑 Ваши права обновлены!', 'success');
                         }
                     } else {
                         const errorData = await updateResponse.json();
@@ -860,18 +860,17 @@ async function removeRoleFromUser(userId, role) {
                 });
 
                 if (updateResponse.ok) {
-                    showNotification(`✅ Роль ${getRoleName(role)} удалена`, 'success');
+                    showNotification(`✅ Роль ${getRoleName(role)} удалена у пользователя ${user.username}`, 'success');
 
-                    // Если у пользователя удалили ADMIN - разлогиниваем его
-                    if (user.username === currentUser && role === 'ADMIN') {
-                        showNotification('⚠️ У вас отозваны права администратора. Вы будете перенаправлены на страницу входа.', 'warning');
-                        setTimeout(() => {
-                            window.location.href = '/logout';
-                        }, 2000);
-                    } else {
-                        await loadUsersManagement();
-                        await loadTeamMembers();
-                        await loadStats();
+                    // Просто обновляем данные без перезагрузки
+                    await loadUsersManagement();
+                    await loadTeamMembers();
+                    await loadStats();
+
+                    // Проверяем права заново (если это текущий пользователь)
+                    if (user.username === currentUser) {
+                        await checkAdminRights();
+                        showNotification('👑 Ваши права обновлены!', 'success');
                     }
                 } else {
                     const errorData = await updateResponse.json();
@@ -923,6 +922,13 @@ async function deleteUser(userId, username) {
 async function loadRegistrationRequests() {
     const container = document.getElementById('requestsContainer');
     if (!container) return;
+
+    // Проверяем права администратора
+    const isAdmin = await checkAdminRights();
+    if (!isAdmin) {
+        container.innerHTML = '<div class="error-message">⛔ Доступ запрещён. Требуются права администратора.</div>';
+        return;
+    }
 
     try {
         const response = await fetch('/api/admin/registration-requests');
@@ -982,6 +988,65 @@ async function approveRequest(requestId) {
         console.error('Ошибка:', error);
         showNotification('❌ Ошибка соединения', 'error');
     }
+}
+
+// ========== ПРОВЕРКА ПРАВ АДМИНИСТРАТОРА ==========
+async function checkAdminRights() {
+    try {
+        const response = await fetch('/api/public-users');
+        if (response.ok) {
+            const users = await response.json();
+            const currentUsername = window.userData.username;
+            const currentUser = users.find(u => u.username === currentUsername);
+
+            if (currentUser) {
+                const isAdmin = currentUser.roles.includes('ADMIN');
+                const wasAdmin = window.userData.isAdmin;
+
+                // Обновляем глобальную переменную
+                window.userData.isAdmin = isAdmin;
+
+                // Обновляем текст роли в хедере
+                const userRoleSpan = document.getElementById('userRoleSpan');
+                if (userRoleSpan) {
+                    userRoleSpan.textContent = isAdmin ? 'Админ' : 'Сотрудник';
+                }
+
+                // Показываем или скрываем админские кнопки (с классом admin-only)
+                const adminButtons = document.querySelectorAll('.admin-only');
+                if (isAdmin) {
+                    adminButtons.forEach(btn => btn.style.display = 'inline-flex');
+                    // Обновляем welcome секцию
+                    const welcomeDiv = document.querySelector('.welcome-section');
+                    if (welcomeDiv) {
+                        let adminMessage = welcomeDiv.querySelector('.admin-message');
+                        if (!adminMessage) {
+                            adminMessage = document.createElement('div');
+                            adminMessage.className = 'admin-message';
+                            adminMessage.style.padding = '10px';
+                            adminMessage.style.borderRadius = '10px';
+                            adminMessage.style.marginTop = '10px';
+                            adminMessage.style.background = 'rgba(102, 126, 234, 0.2)';
+                            welcomeDiv.appendChild(adminMessage);
+                        }
+                        adminMessage.innerHTML = '<i class="fas fa-crown"></i> Приветствую, Администратор!';
+                    }
+                } else {
+                    adminButtons.forEach(btn => btn.style.display = 'none');
+                }
+
+                // Если права изменились, показываем уведомление
+                if (wasAdmin !== undefined && wasAdmin !== isAdmin) {
+                    showNotification(`Ваши права обновлены! Теперь вы: ${isAdmin ? 'Администратор' : 'Сотрудник'}`, 'info');
+                }
+
+                return isAdmin;
+            }
+        }
+    } catch (error) {
+        console.error('Ошибка проверки прав:', error);
+    }
+    return window.userData.isAdmin;
 }
 
 async function rejectRequest(requestId) {
@@ -1059,6 +1124,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     await getCurrentUserId();
     startHeartbeat();
 
+    // Проверяем права администратора при загрузке
+    await checkAdminRights();
+
     // Останавливаем heartbeat при закрытии/уходе со страницы
     window.addEventListener('beforeunload', () => {
         stopHeartbeat();
@@ -1068,11 +1136,14 @@ document.addEventListener('DOMContentLoaded', async () => {
     document.querySelector('.upload-audio-btn')?.addEventListener('click', () => alert('🎙️ Загрузка аудио будет доступна позже'));
     document.querySelector('.new-idea-btn')?.addEventListener('click', () => window.location.href = '/add_idea');
     document.getElementById('refreshRequestsBtn')?.addEventListener('click', () => loadRegistrationRequests());
+    document.getElementById('refreshUsersBtn')?.addEventListener('click', () => loadUsersManagement());
 
-    // Обновляем статусы каждые 30 секунд
+    // Обновляем статусы и проверяем права каждые 30 секунд
     setInterval(async () => {
         if (document.querySelector('#dashboard-tab.active')) {
             await loadTeamMembers();
         }
+        // Проверяем права администратора каждые 30 секунд
+        await checkAdminRights();
     }, 30000);
 });

@@ -34,14 +34,16 @@
                     <i class="fas fa-head-side-headphones"></i>
                     <span>Звуки</span>
                 </button>
-                <button th:if="${isAdmin}" class="nav-tab" data-tab="registration-requests">
+                <!-- Админские кнопки - скрыты по умолчанию, показываются через JS -->
+                <button class="nav-tab admin-only" data-tab="registration-requests" style="display: none;">
                     <i class="fas fa-clipboard-list"></i>
                     <span>Заявки</span>
                     <span class="request-badge" id="requestsBadge" style="display: none;">!</span>
                 </button>
-                <button th:if="${isAdmin}" class="nav-tab" data-tab="users-management">
+                <button class="nav-tab admin-only" data-tab="users-management" style="display: none;">
                     <i class="fas fa-users-gear"></i>
                     <span>Управление</span>
+                </button>
                 </button>
             </nav>
 
@@ -51,7 +53,7 @@
                 </div>
                 <div class="user-meta">
                     <span class="user-name" th:text="${username}">Admin</span>
-                    <span class="user-role" th:text="${isAdmin} ? 'Админ' : 'Сотрудник'">Админ</span>
+                    <span class="user-role" id="userRoleSpan">Сотрудник</span>
                 </div>
                 <form th:action="@{/logout}" method="post" style="margin: 0; display: inline;">
                     <button type="submit" class="logout-icon-btn" title="Выйти">
