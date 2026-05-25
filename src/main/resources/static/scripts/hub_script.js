@@ -802,22 +802,16 @@ async function addRoleToUser(userId, role) {
                         // Проверяем, обновили ли мы роли текущего пользователя
                         const currentUser = window.userData.username;
                         if (user.username === currentUser) {
-                            // Обновляем хедер без перезагрузки страницы
-                            await updateHeaderAfterRoleChange();
-                            // Перезагружаем другие компоненты
-                            await loadUsersManagement();
-                            await loadTeamMembers();
-                            await loadStats();
-
-                            // Дополнительное уведомление
-                            showNotification('⚠️ Для полного обновления некоторых функций может потребоваться перезагрузка страницы', 'warning');
+                            showNotification('⚠️ Страница перезагрузится для применения изменений', 'warning');
+                            setTimeout(() => window.location.reload(), 2000);
                         } else {
                             await loadUsersManagement();
                             await loadTeamMembers();
                             await loadStats();
                         }
                     } else {
-                        showNotification('❌ Ошибка при добавлении роли', 'error');
+                        const errorData = await updateResponse.json();
+                        showNotification(`❌ Ошибка: ${errorData.error || 'Неизвестная ошибка'}`, 'error');
                     }
                 } else {
                     showNotification('⚠️ У пользователя уже есть эта роль', 'error');
@@ -864,18 +858,16 @@ async function removeRoleFromUser(userId, role) {
 
                     // Проверяем, обновили ли мы роли текущего пользователя
                     if (user.username === currentUser) {
-                        // Обновляем хедер без перезагрузки страницы
-                        await updateHeaderAfterRoleChange();
-                        await loadUsersManagement();
-                        await loadTeamMembers();
-                        await loadStats();
+                        showNotification('⚠️ Страница перезагрузится для применения изменений', 'warning');
+                        setTimeout(() => window.location.reload(), 2000);
                     } else {
                         await loadUsersManagement();
                         await loadTeamMembers();
                         await loadStats();
                     }
                 } else {
-                    showNotification('❌ Ошибка при удалении роли', 'error');
+                    const errorData = await updateResponse.json();
+                    showNotification(`❌ Ошибка: ${errorData.error || 'Неизвестная ошибка'}`, 'error');
                 }
             }
         }
