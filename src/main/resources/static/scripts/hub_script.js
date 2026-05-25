@@ -991,6 +991,7 @@ async function approveRequest(requestId) {
 }
 
 // ========== ПРОВЕРКА ПРАВ АДМИНИСТРАТОРА ==========
+// ========== ПРОВЕРКА ПРАВ АДМИНИСТРАТОРА ==========
 async function checkAdminRights() {
     try {
         const response = await fetch('/api/public-users');
@@ -1016,23 +1017,18 @@ async function checkAdminRights() {
                 const adminButtons = document.querySelectorAll('.admin-only');
                 if (isAdmin) {
                     adminButtons.forEach(btn => btn.style.display = 'inline-flex');
-                    // Обновляем welcome секцию
-                    const welcomeDiv = document.querySelector('.welcome-section');
-                    if (welcomeDiv) {
-                        let adminMessage = welcomeDiv.querySelector('.admin-message');
-                        if (!adminMessage) {
-                            adminMessage = document.createElement('div');
-                            adminMessage.className = 'admin-message';
-                            adminMessage.style.padding = '10px';
-                            adminMessage.style.borderRadius = '10px';
-                            adminMessage.style.marginTop = '10px';
-                            adminMessage.style.background = 'rgba(102, 126, 234, 0.2)';
-                            welcomeDiv.appendChild(adminMessage);
-                        }
-                        adminMessage.innerHTML = '<i class="fas fa-crown"></i> Приветствую, Администратор!';
-                    }
                 } else {
                     adminButtons.forEach(btn => btn.style.display = 'none');
+                }
+
+                // Управляем приветствием администратора в welcome-section (только здесь!)
+                const adminWelcomeDiv = document.getElementById('adminWelcomeMessage');
+                if (adminWelcomeDiv) {
+                    if (isAdmin) {
+                        adminWelcomeDiv.style.display = 'block';
+                    } else {
+                        adminWelcomeDiv.style.display = 'none';
+                    }
                 }
 
                 // Если права изменились, показываем уведомление
