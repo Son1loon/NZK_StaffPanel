@@ -795,11 +795,20 @@ async function addRoleToUser(userId, role) {
                         headers: headers,
                         body: JSON.stringify({ roles: newRoles })
                     });
+
                     if (updateResponse.ok) {
                         showNotification(`✅ Роль ${getRoleName(role)} добавлена`, 'success');
-                        await loadUsersManagement();
-                        await loadTeamMembers();
-                        await loadStats();
+
+                        // Проверяем, обновили ли мы роли текущего пользователя
+                        const currentUser = window.userData.username;
+                        if (user.username === currentUser) {
+                            showNotification('⚠️ Страница будет перезагружена для применения изменений', 'warning');
+                            setTimeout(() => window.location.reload(), 2000);
+                        } else {
+                            await loadUsersManagement();
+                            await loadTeamMembers();
+                            await loadStats();
+                        }
                     } else {
                         showNotification('❌ Ошибка при добавлении роли', 'error');
                     }

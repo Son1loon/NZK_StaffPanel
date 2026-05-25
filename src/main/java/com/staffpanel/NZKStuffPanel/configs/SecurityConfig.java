@@ -28,10 +28,12 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         // Публичные страницы и ресурсы
                         .requestMatchers("/", "/login", "/styles/**", "/scripts/**",
-                                "/css/**", "/js/**").permitAll()
-                        // API для регистрации (ДОБАВИТЬ ЭТУ СТРОКУ!)
+                                "/css/**", "/js/**", "/images/**").permitAll()
+                        // Публичные API эндпоинты
                         .requestMatchers("/api/register-request").permitAll()
-                        // API для статики и прочего
+                        .requestMatchers("/api/public-users").permitAll()
+                        .requestMatchers("/api/online-users").permitAll()
+                        .requestMatchers("/api/heartbeat").permitAll()
                         .requestMatchers("/api/auth/**").permitAll()
                         // Админские эндпоинты
                         .requestMatchers("/admin/**").hasRole("ADMIN")
@@ -53,9 +55,9 @@ public class SecurityConfig {
                         .clearAuthentication(true)
                         .permitAll()
                 )
-                // ВАЖНО: отключаем CSRF для API регистрации
+                // Отключаем CSRF для публичных API
                 .csrf(csrf -> csrf
-                        .ignoringRequestMatchers("/api/register-request")
+                        .ignoringRequestMatchers("/api/register-request", "/api/heartbeat")
                 )
                 .userDetailsService(userDetailsService);
 
