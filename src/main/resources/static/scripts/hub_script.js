@@ -802,8 +802,15 @@ async function addRoleToUser(userId, role) {
                         // Проверяем, обновили ли мы роли текущего пользователя
                         const currentUser = window.userData.username;
                         if (user.username === currentUser) {
-                            showNotification('⚠️ Страница будет перезагружена для применения изменений', 'warning');
-                            setTimeout(() => window.location.reload(), 2000);
+                            // Обновляем хедер без перезагрузки страницы
+                            await updateHeaderAfterRoleChange();
+                            // Перезагружаем другие компоненты
+                            await loadUsersManagement();
+                            await loadTeamMembers();
+                            await loadStats();
+
+                            // Дополнительное уведомление
+                            showNotification('⚠️ Для полного обновления некоторых функций может потребоваться перезагрузка страницы', 'warning');
                         } else {
                             await loadUsersManagement();
                             await loadTeamMembers();
@@ -851,11 +858,22 @@ async function removeRoleFromUser(userId, role) {
                     headers: headers,
                     body: JSON.stringify({ roles: newRoles })
                 });
+
                 if (updateResponse.ok) {
                     showNotification(`✅ Роль ${getRoleName(role)} удалена`, 'success');
-                    await loadUsersManagement();
-                    await loadTeamMembers();
-                    await loadStats();
+
+                    // Проверяем, обновили ли мы роли текущего пользователя
+                    if (user.username === currentUser) {
+                        // Обновляем хедер без перезагрузки страницы
+                        await updateHeaderAfterRoleChange();
+                        await loadUsersManagement();
+                        await loadTeamMembers();
+                        await loadStats();
+                    } else {
+                        await loadUsersManagement();
+                        await loadTeamMembers();
+                        await loadStats();
+                    }
                 } else {
                     showNotification('❌ Ошибка при удалении роли', 'error');
                 }
@@ -984,6 +1002,51 @@ async function rejectRequest(requestId) {
     } catch (error) {
         console.error('Ошибка:', error);
         showNotification('❌ Ошибка соединения', 'error');
+    }
+}
+
+// ========== ОБНОВЛЕНИЕ ХЕДЕРА ПОСЛЕ СМЕНЫ РОЛЕЙ ==========
+async function updateHeaderAfterRoleChange() {
+    try {
+        // Получаем обновлённые данные пользователя
+        const response = await fetch('/api/public-users');
+        if (response.ok) {
+            const users = await response.json();
+            const currentUser = window.userData.username;
+            const user = users.find(u => u.username === currentUser);
+
+            if (user) {
+                const isAdmin = user.roles.includes('ADMIN');
+
+                // Обновляем глобальную переменную
+                window.userData.isAdmin = isAdmin;
+
+                // Находим элементы хедера, которые зависят от роли
+                const adminButtons = document.querySelectorAll('.nav-tab[data-tab="registration-requests"], .nav-tab[data-tab="users-management"]');
+
+                if (isAdmin) {
+                    // Показываем админские кнопки
+                    adminButtons.forEach(btn => {
+                        btn.style.display = 'inline-flex';
+                    });
+                    // Обновляем текст роли
+                    const userRoleSpan = document.querySelector('.user-role');
+                    if (userRoleSpan) userRoleSpan.textContent = 'Админ';
+                } else {
+                    // Скрываем админские кнопки
+                    adminButtons.forEach(btn => {
+                        btn.style.display = 'none';
+                    });
+                    // Обновляем текст роли
+                    const userRoleSpan = document.querySelector('.user-role');
+                    if (userRoleSpan) userRoleSpan.textContent = 'Сотрудник';
+                }
+
+                showNotification(`Роли обновлены! Теперь вы: ${isAdmin ? 'Администратор' : 'Сотрудник'}`, 'success');
+            }
+        }
+    } catch (error) {
+        console.error('Ошибка обновления хедера:', error);
     }
 }
 
