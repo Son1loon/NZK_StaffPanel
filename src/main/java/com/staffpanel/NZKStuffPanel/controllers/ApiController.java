@@ -412,4 +412,19 @@ public class ApiController {
 
         return ResponseEntity.ok(response);
     }
+
+    // ========== ПРИНУДИТЕЛЬНЫЙ ВЫХОД ПОЛЬЗОВАТЕЛЯ ==========
+    @PostMapping("/admin/force-logout/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<?> forceLogout(@PathVariable Long id, HttpServletRequest request) {
+        Optional<User> userOpt = userRepository.findById(id);
+        if (userOpt.isEmpty()) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Пользователь не найден"));
+        }
+
+        // Инвалидируем сессию пользователя (если она есть)
+        request.getSession().invalidate();
+
+        return ResponseEntity.ok(Map.of("success", "Пользователь принудительно вышел"));
+    }
 }

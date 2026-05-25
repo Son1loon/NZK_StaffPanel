@@ -799,11 +799,17 @@ async function addRoleToUser(userId, role) {
                     if (updateResponse.ok) {
                         showNotification(`✅ Роль ${getRoleName(role)} добавлена`, 'success');
 
-                        // Проверяем, обновили ли мы роли текущего пользователя
                         const currentUser = window.userData.username;
                         if (user.username === currentUser) {
-                            showNotification('⚠️ Страница перезагрузится для применения изменений', 'warning');
-                            setTimeout(() => window.location.reload(), 2000);
+                            // Если добавили ADMIN себе - перезагружаем страницу
+                            if (role === 'ADMIN') {
+                                showNotification('👑 Вы стали администратором! Страница перезагружается...', 'success');
+                                setTimeout(() => window.location.reload(), 1500);
+                            } else {
+                                await loadUsersManagement();
+                                await loadTeamMembers();
+                                await loadStats();
+                            }
                         } else {
                             await loadUsersManagement();
                             await loadTeamMembers();
@@ -856,10 +862,12 @@ async function removeRoleFromUser(userId, role) {
                 if (updateResponse.ok) {
                     showNotification(`✅ Роль ${getRoleName(role)} удалена`, 'success');
 
-                    // Проверяем, обновили ли мы роли текущего пользователя
-                    if (user.username === currentUser) {
-                        showNotification('⚠️ Страница перезагрузится для применения изменений', 'warning');
-                        setTimeout(() => window.location.reload(), 2000);
+                    // Если у пользователя удалили ADMIN - разлогиниваем его
+                    if (user.username === currentUser && role === 'ADMIN') {
+                        showNotification('⚠️ У вас отозваны права администратора. Вы будете перенаправлены на страницу входа.', 'warning');
+                        setTimeout(() => {
+                            window.location.href = '/logout';
+                        }, 2000);
                     } else {
                         await loadUsersManagement();
                         await loadTeamMembers();

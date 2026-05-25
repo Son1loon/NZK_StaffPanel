@@ -1411,14 +1411,3 @@ audio {
         min-width: 700px;
     }
 }
-
-/* Админские кнопки по умолчанию видны только если isAdmin */
-.nav-tab[data-tab="registration-requests"],
-.nav-tab[data-tab="users-management"] {
-    display: none;
-}
-
-.nav-tab[data-tab="registration-requests"].visible,
-.nav-tab[data-tab="users-management"].visible {
-    display: inline-flex;
-}
