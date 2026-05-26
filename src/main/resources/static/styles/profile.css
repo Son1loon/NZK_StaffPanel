@@ -1,0 +1,681 @@
+/* ========== ПРОФИЛЬ - СТИЛИСТИКА КАК У ХАБА ========== */
+.profile-main {
+    flex: 1 0 auto;
+    max-width: 1400px;
+    margin: 0 auto;
+    width: 100%;
+    padding: 2rem;
+}
+
+.profile-container {
+    display: flex;
+    gap: 2rem;
+    flex-wrap: wrap;
+}
+
+/* Левая колонка - аватар и информация */
+.profile-sidebar {
+    flex: 1;
+    min-width: 280px;
+}
+
+.avatar-section {
+    background: #111521;
+    border-radius: 1.5rem;
+    padding: 2rem;
+    text-align: center;
+    margin-bottom: 1.5rem;
+    border: 1px solid #2a2f48;
+    transition: all 0.2s;
+}
+
+.avatar-section:hover {
+    border-color: #667eea;
+}
+
+.avatar-preview {
+    width: 150px;
+    height: 150px;
+    margin: 0 auto 1rem;
+    background: linear-gradient(135deg, #2c3f94, #1a266a);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 4rem;
+    color: #ffda88;
+    overflow: hidden;
+    box-shadow: 0 8px 20px rgba(0,0,0,0.3);
+}
+
+.avatar-preview img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.change-avatar-btn {
+    background: linear-gradient(135deg, #3b4ecf, #562de0);
+    border: none;
+    padding: 0.6rem 1.2rem;
+    border-radius: 2rem;
+    color: white;
+    cursor: pointer;
+    font-size: 0.9rem;
+    transition: all 0.2s;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.change-avatar-btn:hover {
+    transform: scale(1.02);
+    box-shadow: 0 4px 12px rgba(59, 78, 207, 0.4);
+}
+
+/* Карточка информации о пользователе */
+.user-info-card {
+    background: #111521;
+    border-radius: 1.5rem;
+    padding: 1.5rem;
+    border: 1px solid #2a2f48;
+}
+
+.user-info-card h3 {
+    font-size: 1.3rem;
+    margin-bottom: 1rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: #eef2ff;
+}
+
+.user-roles-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+}
+
+.role-tag {
+    font-size: 0.7rem;
+    padding: 0.2rem 0.6rem;
+    border-radius: 1rem;
+    background: #1a1f35;
+    color: #a0a8c0;
+}
+
+.role-tag.role-admin {
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    color: white;
+}
+
+.role-tag.role-builder {
+    background: #f59e0b;
+    color: #1a1a2e;
+}
+
+.role-tag.role-screenwriter {
+    background: #22c55e;
+    color: #1a1a2e;
+}
+
+.role-tag.role-voice_actor {
+    background: #8b5cf6;
+    color: white;
+}
+
+.role-tag.role-animator {
+    background: #ec4899;
+    color: white;
+}
+
+.user-since {
+    font-size: 0.8rem;
+    color: #7c8bd6;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+/* Правая колонка - контент */
+.profile-content {
+    flex: 2;
+    min-width: 400px;
+    background: #111521;
+    border-radius: 1.5rem;
+    padding: 1.5rem;
+    border: 1px solid #2a2f48;
+}
+
+/* Вкладки профиля */
+.profile-tabs {
+    display: flex;
+    gap: 0.5rem;
+    border-bottom: 1px solid #2a2f48;
+    margin-bottom: 1.5rem;
+    flex-wrap: wrap;
+}
+
+.profile-tab {
+    background: none;
+    border: none;
+    padding: 0.8rem 1.5rem;
+    color: #a0a8c0;
+    font-size: 0.95rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+    border-radius: 0.5rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.profile-tab:hover {
+    background: rgba(102, 126, 234, 0.1);
+    color: white;
+}
+
+.profile-tab.active {
+    color: white;
+    border-bottom: 2px solid #667eea;
+}
+
+/* Контент вкладок */
+.profile-tab-content {
+    display: none;
+    animation: fadeSlide 0.3s ease;
+}
+
+.profile-tab-content.active {
+    display: block;
+}
+
+.profile-tab-content h3 {
+    font-size: 1.2rem;
+    margin-bottom: 1rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: #cbd5ff;
+}
+
+/* Список задач пользователя */
+.user-tasks-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.8rem;
+}
+
+.task-item {
+    background: #1a1f35;
+    border-radius: 0.8rem;
+    padding: 1rem;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    border-left: 3px solid #f59e0b;
+    transition: all 0.2s;
+}
+
+.task-item:hover {
+    transform: translateX(5px);
+    background: #1f253f;
+}
+
+.task-status {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+
+.task-status.in_progress {
+    background: #f59e0b;
+    box-shadow: 0 0 4px #f59e0b;
+}
+
+.task-status.completed {
+    background: #22c55e;
+    box-shadow: 0 0 4px #22c55e;
+}
+
+.task-info {
+    flex: 1;
+}
+
+.task-title {
+    font-weight: 600;
+    margin-bottom: 0.2rem;
+    color: white;
+}
+
+.task-deadline {
+    font-size: 0.7rem;
+    color: #7c8bd6;
+}
+
+.task-priority {
+    font-size: 0.7rem;
+    padding: 0.2rem 0.5rem;
+    border-radius: 0.5rem;
+    font-weight: 500;
+}
+
+.priority-high {
+    background: rgba(239, 68, 68, 0.2);
+    color: #f87171;
+}
+
+.priority-medium {
+    background: rgba(245, 158, 11, 0.2);
+    color: #fbbf24;
+}
+
+.priority-low {
+    background: rgba(34, 197, 94, 0.2);
+    color: #4ade80;
+}
+
+/* Секции работ по ролям */
+.role-section {
+    margin-bottom: 1.5rem;
+}
+
+.role-section h4 {
+    margin-bottom: 1rem;
+    color: #cbd5ff;
+    font-size: 1rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.works-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 1rem;
+}
+
+.work-card {
+    background: #1a1f35;
+    border-radius: 0.8rem;
+    padding: 1rem;
+    text-align: center;
+    transition: all 0.2s;
+    border: 1px solid #2a2f48;
+}
+
+.work-card:hover {
+    transform: translateY(-3px);
+    border-color: #667eea;
+    background: #1f253f;
+}
+
+.work-thumbnail {
+    font-size: 2rem;
+    margin-bottom: 0.5rem;
+    color: #ffda88;
+}
+
+.work-title {
+    font-weight: 600;
+    font-size: 0.9rem;
+    margin-bottom: 0.3rem;
+    color: white;
+}
+
+.work-date {
+    font-size: 0.7rem;
+    color: #7c8bd6;
+}
+
+.work-card audio {
+    width: 100%;
+    margin-top: 0.5rem;
+    height: 30px;
+}
+
+/* Форма настроек */
+.settings-form {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.settings-form .form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.settings-form label {
+    font-weight: 600;
+    color: #a0a8c0;
+    font-size: 0.9rem;
+}
+
+.settings-form input {
+    background: #1a1f35;
+    border: 1px solid #2f365b;
+    border-radius: 0.6rem;
+    padding: 0.7rem 1rem;
+    color: white;
+    font-size: 0.9rem;
+    transition: all 0.2s;
+}
+
+.settings-form input:focus {
+    outline: none;
+    border-color: #667eea;
+    box-shadow: 0 0 0 2px rgba(102, 126, 234, 0.2);
+}
+
+.settings-form input::placeholder {
+    color: #4a5578;
+}
+
+.save-settings-btn {
+    background: linear-gradient(135deg, #22c55e, #16a34a);
+    border: none;
+    padding: 0.7rem;
+    border-radius: 0.8rem;
+    color: white;
+    font-weight: 600;
+    cursor: pointer;
+    margin-top: 0.5rem;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+}
+
+.save-settings-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(34, 197, 94, 0.4);
+}
+
+/* Пустые состояния в профиле */
+.profile-empty-state {
+    text-align: center;
+    padding: 2rem;
+    color: #5a668a;
+    background: rgba(255, 255, 255, 0.03);
+    border-radius: 0.8rem;
+    font-size: 0.9rem;
+}
+
+.contact-admin-card {
+    background: linear-gradient(135deg, #1a1f35, #111521);
+    border-radius: 1rem;
+    padding: 1.5rem;
+    text-align: center;
+    border: 1px solid #2a2f48;
+}
+
+.admin-contact-info {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+
+.admin-contact-info i {
+    font-size: 3rem;
+    color: #ffda88;
+}
+
+.admin-contact-info h4 {
+    font-size: 1.2rem;
+    color: white;
+}
+
+.admin-contact-info p {
+    font-size: 0.8rem;
+    color: #7c8bd6;
+}
+
+.contact-links {
+    display: flex;
+    gap: 1rem;
+    justify-content: center;
+    margin-top: 0.5rem;
+}
+
+.contact-links a {
+    color: #a0a8c0;
+    text-decoration: none;
+    font-size: 0.8rem;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+}
+
+.contact-links a:hover {
+    color: #667eea;
+}
+
+.contact-note {
+    font-size: 0.7rem;
+    color: #5a668a;
+    margin-top: 0.5rem;
+}
+
+/* Стили для ссылок в навигации */
+.logo-link {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    text-decoration: none;
+}
+
+.nav-tab {
+    background: transparent;
+    border: none;
+    padding: 0.4rem 0.9rem;
+    border-radius: 2rem;
+    color: #a0a8c0;
+    font-weight: 500;
+    font-size: 0.8rem;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    white-space: nowrap;
+    text-decoration: none;
+}
+
+.nav-tab:hover {
+    background: rgba(102, 126, 234, 0.15);
+    color: white;
+}
+
+.nav-tab.active {
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    color: white;
+}
+/* ========== ПОДДЕРЖКА ========== */
+.support-card {
+    background: linear-gradient(135deg, #1a1f35, #111521);
+    border-radius: 1.2rem;
+    padding: 1.5rem;
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+    border: 1px solid #2a2f48;
+    margin-bottom: 1.5rem;
+    flex-wrap: wrap;
+}
+
+.support-icon {
+    width: 70px;
+    height: 70px;
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 2rem;
+    color: white;
+}
+
+.support-info h4 {
+    font-size: 1.2rem;
+    color: white;
+    margin-bottom: 0.3rem;
+}
+
+.support-info p {
+    font-size: 0.85rem;
+    color: #7c8bd6;
+    margin-bottom: 0.5rem;
+}
+
+.support-note {
+    background: rgba(102, 126, 234, 0.15);
+    padding: 0.4rem 0.8rem;
+    border-radius: 0.6rem;
+    font-size: 0.75rem;
+    color: #a0a8c0;
+    margin: 0.5rem 0;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+}
+
+.support-contacts {
+    display: flex;
+    gap: 1rem;
+    margin-top: 0.8rem;
+    flex-wrap: wrap;
+}
+
+.contact-btn {
+    padding: 0.5rem 1rem;
+    border-radius: 2rem;
+    text-decoration: none;
+    font-size: 0.8rem;
+    font-weight: 500;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    transition: all 0.2s;
+}
+
+.contact-btn.discord {
+    background: #5865F2;
+    color: white;
+}
+
+.contact-btn.discord:hover {
+    background: #4752c4;
+    transform: translateY(-2px);
+}
+
+.contact-btn.telegram {
+    background: #26A5E4;
+    color: white;
+}
+
+.contact-btn.telegram:hover {
+    background: #1e8bc9;
+    transform: translateY(-2px);
+}
+
+.support-message {
+    background: rgba(34, 197, 94, 0.1);
+    border: 1px solid rgba(34, 197, 94, 0.3);
+    border-radius: 1rem;
+    padding: 1rem;
+    text-align: center;
+}
+
+.support-message i {
+    font-size: 1.5rem;
+    color: #22c55e;
+    margin-bottom: 0.5rem;
+}
+
+.support-message p {
+    color: #a0a8c0;
+    font-size: 0.85rem;
+    margin: 0.3rem 0;
+}
+
+.support-message small {
+    color: #5a668a;
+    font-size: 0.7rem;
+}
+
+/* Адаптив для поддержки */
+@media (max-width: 600px) {
+    .support-card {
+        flex-direction: column;
+        text-align: center;
+    }
+
+    .support-contacts {
+        justify-content: center;
+    }
+
+    .support-note {
+        text-align: center;
+    }
+}
+
+/* Адаптив */
+@media (max-width: 900px) {
+    .nav-tab span {
+        display: none;
+    }
+    .nav-tab {
+        padding: 0.4rem 0.7rem;
+    }
+    .nav-tab i {
+        font-size: 1rem;
+    }
+}
+
+/* Адаптив для профиля */
+@media (max-width: 768px) {
+    .profile-main {
+        padding: 1rem;
+    }
+
+    .profile-container {
+        flex-direction: column;
+    }
+
+    .profile-content {
+        min-width: auto;
+    }
+
+    .works-grid {
+        grid-template-columns: 1fr 1fr;
+    }
+
+    .profile-tab {
+        padding: 0.5rem 1rem;
+        font-size: 0.85rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .works-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .avatar-preview {
+        width: 100px;
+        height: 100px;
+        font-size: 2.5rem;
+    }
+
+    .profile-tabs {
+        justify-content: center;
+    }
+}

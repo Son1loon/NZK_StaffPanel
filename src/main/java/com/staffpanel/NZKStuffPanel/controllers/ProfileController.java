@@ -2,35 +2,33 @@ package com.staffpanel.NZKStuffPanel.controllers;
 
 import com.staffpanel.NZKStuffPanel.models.User;
 import com.staffpanel.NZKStuffPanel.repository.UserRepository;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
 
 @Controller
-public class HubController {
+@RequestMapping("/profile")
+public class ProfileController {
 
-    private final UserRepository userRepository;
+    @Autowired
+    private UserRepository userRepository;
 
-    public HubController(UserRepository userRepository) {
-        this.userRepository = userRepository;
-    }
-
-    @GetMapping("/hub")
-    public String hub(Model model) {
-        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+    @GetMapping
+    public String profile(Authentication auth, Model model) {
         String username = auth.getName();
-
         User user = userRepository.findByUsername(username).orElse(null);
+
         boolean isAdmin = auth.getAuthorities().stream()
                 .anyMatch(granted -> granted.getAuthority().equals("ROLE_ADMIN"));
 
         model.addAttribute("username", username);
         model.addAttribute("isAdmin", isAdmin);
         model.addAttribute("user", user);
-        model.addAttribute("currentPage", "hub");
+        model.addAttribute("currentPage", "profile");
 
-        return "hub_nzk";
+        return "profile";
     }
 }

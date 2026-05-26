@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="ru" xmlns:th="http://www.thymeleaf.org">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>Мой профиль - NZK StaffPanel</title>
+    <meta name="_csrf" th:content="${_csrf.token}"/>
+    <meta name="_csrf_header" th:content="${_csrf.headerName}"/>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;14..32,400;14..32,500;14..32,600;14..32,700;14..32,800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link rel="stylesheet" th:href="@{/styles/hub_style.css}">
+    <link rel="stylesheet" th:href="@{/styles/profile.css}">
+    <link rel="stylesheet" th:href="@{/styles/blocks/header.css}">
+    <link rel="stylesheet" th:href="@{/styles/blocks/footer.css}">
+</head>
+
+<body>
+<div class="hub-wrapper">
+    <header th:replace="~{blocks/header :: header}"></header>
+
+    <main class="profile-main">
+        <div class="profile-container">
+            <!-- Левая колонка - Аватар и основная информация -->
+            <div class="profile-sidebar">
+                <div class="avatar-section">
+                    <div class="avatar-preview" id="avatarPreview">
+                        <i class="fas fa-user-astronaut"></i>
+                    </div>
+                    <button class="change-avatar-btn" id="changeAvatarBtn">
+                        <i class="fas fa-camera"></i> Сменить аватар
+                    </button>
+                    <input type="file" id="avatarUpload" accept="image/*" style="display: none;">
+                </div>
+
+                <div class="user-info-card">
+                    <h3><i class="fas fa-user-circle"></i> <span th:text="${username}">User</span></h3>
+                    <p class="user-roles-list" id="userRolesList"></p>
+                    <p class="user-since">На сайте с: <span id="userSince">-</span></p>
+                </div>
+            </div>
+
+            <!-- Правая колонка - Контент по ролям -->
+            <div class="profile-content">
+                <div class="profile-tabs">
+                    <button class="profile-tab active" data-tab="tasks">📋 Мои задачи</button>
+                    <button class="profile-tab" data-tab="works">🏗️ Мои работы</button>
+                    <button class="profile-tab" data-tab="support">🛟 Поддержка</button>
+                </div>
+
+                <!-- Вкладка: Мои задачи -->
+                <div class="profile-tab-content active" id="tasks-tab">
+                    <h3><i class="fas fa-tasks"></i> Активные задачи</h3>
+                    <div id="userTasksContainer" class="user-tasks-list">
+                        <div class="loading-spinner">Загрузка задач...</div>
+                    </div>
+                </div>
+
+                <!-- Вкладка: Мои работы -->
+                <div class="profile-tab-content" id="works-tab">
+                    <h3><i class="fas fa-archive"></i> Мои работы</h3>
+
+                    <div id="builderWorksContainer" class="role-section" style="display: none;">
+                        <h4><i class="fas fa-hard-hat"></i> Постройки</h4>
+                        <div class="works-grid"></div>
+                    </div>
+
+                    <div id="screenwriterWorksContainer" class="role-section" style="display: none;">
+                        <h4><i class="fas fa-feather-alt"></i> Сценарии</h4>
+                        <div class="works-grid"></div>
+                    </div>
+
+                    <div id="voiceActorWorksContainer" class="role-section" style="display: none;">
+                        <h4><i class="fas fa-microphone-alt"></i> Озвучки</h4>
+                        <div class="works-grid"></div>
+                    </div>
+
+                    <div id="animatorWorksContainer" class="role-section" style="display: none;">
+                        <h4><i class="fas fa-film"></i> Анимации</h4>
+                        <div class="works-grid"></div>
+                    </div>
+                </div>
+
+                <!-- Вкладка: Поддержка -->
+                <div class="profile-tab-content" id="support-tab">
+                    <h3><i class="fas fa-headset"></i> Техническая поддержка</h3>
+
+                    <div class="support-card">
+                        <div class="support-icon">
+                            <i class="fas fa-user-shield"></i>
+                        </div>
+                        <div class="support-info">
+                            <h4>FoxyClaus</h4>
+                            <p>Технический администратор</p>
+                            <div class="support-note">
+                                <i class="fas fa-info-circle"></i> Для смены пароля или решения проблем обратитесь к администратору
+                            </div>
+                            <div class="support-contacts">
+                                <a href="https://discord.com/users/688066361129304194" target="_blank" class="contact-btn discord">
+                                    <i class="fab fa-discord"></i> Discord: FoxyClaus
+                                </a>
+                                <a href="tg://resolve?domain=arsen66697" target="_blank" class="contact-btn telegram">
+                                    <i class="fab fa-telegram"></i> Telegram
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="support-message">
+                        <i class="fas fa-envelope"></i>
+                        <p>Или напишите на почту: <strong>support@nzk-team.com</strong></p>
+                        <small>Обычно отвечаем в течение 24 часов</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <div th:replace="~{blocks/footer :: footer}"></div>
+</div>
+
+<script th:inline="javascript">
+    /*<![CDATA[*/
+    window.userData = {
+        username: /*[[${username}]]*/ 'Guest',
+        isAdmin: /*[[${isAdmin}]]*/ false
+    };
+    /*]]>*/
+</script>
+<script th:src="@{/scripts/profile.js}"></script>
+</body>
+
+</html>

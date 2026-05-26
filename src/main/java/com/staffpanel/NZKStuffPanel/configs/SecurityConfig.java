@@ -35,6 +35,7 @@ public class SecurityConfig {
                         .requestMatchers("/api/online-users").permitAll()
                         .requestMatchers("/api/heartbeat").permitAll()
                         .requestMatchers("/api/auth/**").permitAll()
+                        .requestMatchers("/api/current-user").authenticated()  // <-- ДОБАВЬ ЭТУ СТРОКУ
                         // Админские эндпоинты
                         .requestMatchers("/admin/**").hasRole("ADMIN")
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")

@@ -5,6 +5,7 @@ import com.staffpanel.NZKStuffPanel.models.Role;
 import com.staffpanel.NZKStuffPanel.models.User;
 import com.staffpanel.NZKStuffPanel.repository.RegistrationRequestRepository;
 import com.staffpanel.NZKStuffPanel.repository.UserRepository;
+import com.staffpanel.NZKStuffPanel.services.CloudinaryService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -18,7 +19,9 @@ import org.springframework.web.bind.annotation.*;
 
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
@@ -427,4 +430,118 @@ public class ApiController {
 
         return ResponseEntity.ok(Map.of("success", "Пользователь принудительно вышел"));
     }
+
+    // ========== ПОЛЬЗОВАТЕЛЬСКИЕ ДАННЫЕ ДЛЯ ПРОФИЛЯ ==========
+    @GetMapping("/user/tasks")
+    public ResponseEntity<?> getUserTasks(Authentication auth) {
+        String username = auth.getName();
+        // TODO: Реализовать получение задач пользователя из БД
+        return ResponseEntity.ok(new ArrayList<>());
+    }
+
+    @GetMapping("/user/builds")
+    public ResponseEntity<?> getUserBuilds(Authentication auth) {
+        String username = auth.getName();
+        // TODO: Реализовать получение построек пользователя
+        return ResponseEntity.ok(new ArrayList<>());
+    }
+
+    @GetMapping("/user/scripts")
+    public ResponseEntity<?> getUserScripts(Authentication auth) {
+        String username = auth.getName();
+        // TODO: Реализовать получение сценариев пользователя
+        return ResponseEntity.ok(new ArrayList<>());
+    }
+
+    @GetMapping("/user/audios")
+    public ResponseEntity<?> getUserAudios(Authentication auth) {
+        String username = auth.getName();
+        // TODO: Реализовать получение аудио пользователя
+        return ResponseEntity.ok(new ArrayList<>());
+    }
+
+    @GetMapping("/user/animations")
+    public ResponseEntity<?> getUserAnimations(Authentication auth) {
+        String username = auth.getName();
+        // TODO: Реализовать получение анимаций пользователя
+        return ResponseEntity.ok(new ArrayList<>());
+    }
+
+    @PutMapping("/user/settings")
+    public ResponseEntity<?> updateUserSettings(@RequestBody Map<String, String> data, Authentication auth) {
+        String username = auth.getName();
+        Optional<User> userOpt = userRepository.findByUsername(username);
+
+        if (userOpt.isEmpty()) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Пользователь не найден"));
+        }
+
+        User user = userOpt.get();
+        String email = data.get("email");
+        String password = data.get("password");
+
+        // TODO: Обновление email (если добавишь поле в БД)
+        // if (email != null && !email.isEmpty()) {
+        //     user.setEmail(email);
+        // }
+
+        if (password != null && !password.isEmpty()) {
+            user.setPassword(passwordEncoder.encode(password));
+        }
+
+        userRepository.save(user);
+
+        return ResponseEntity.ok(Map.of("success", true));
+    }
+
+    @Autowired
+    private CloudinaryService cloudinaryService;
+
+    @PostMapping("/user/avatar")
+    public ResponseEntity<?> uploadAvatar(@RequestParam("avatar") MultipartFile file, Authentication auth, HttpServletResponse response) {
+        String username = auth.getName();
+        Optional<User> userOpt = userRepository.findByUsername(username);
+
+        if (userOpt.isEmpty()) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Пользователь не найден"));
+        }
+
+        try {
+            String avatarUrl = cloudinaryService.uploadAvatar(file, userOpt.get().getId());
+            User user = userOpt.get();
+            user.setAvatar(avatarUrl);
+            userRepository.save(user);
+
+            // Устанавливаем заголовки для отключения кэша
+            response.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
+            response.setHeader("Pragma", "no-cache");
+            response.setHeader("Expires", "0");
+
+            return ResponseEntity.ok(Map.of("avatarUrl", avatarUrl + "?t=" + System.currentTimeMillis()));
+        } catch (IOException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Ошибка загрузки аватара"));
+        }
+    }
+    // ========== ПОЛУЧИТЬ ТЕКУЩЕГО ПОЛЬЗОВАТЕЛЯ (ДЛЯ ХЕДЕРА) ==========
+    @GetMapping("/current-user")
+    public ResponseEntity<?> getCurrentUser(Authentication auth) {
+        String username = auth.getName();
+        Optional<User> userOpt = userRepository.findByUsername(username);
+
+        if (userOpt.isEmpty()) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Пользователь не найден"));
+        }
+
+        User user = userOpt.get();
+        Map<String, Object> response = new HashMap<>();
+        response.put("username", user.getUsername());
+        response.put("avatar", user.getAvatar() != null ? user.getAvatar() : "");
+        response.put("roles", user.getRoles().stream()
+                .map(role -> role.name().replace("ROLE_", ""))
+                .collect(Collectors.toList()));
+
+        return ResponseEntity.ok(response);
+    }
+
+
 }

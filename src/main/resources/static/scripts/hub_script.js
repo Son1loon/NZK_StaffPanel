@@ -8,7 +8,7 @@ function getCsrfToken() {
     return null;
 }
 
-// ========== ТАБ-НАВИГАЦИЯ ==========
+// ========== ТАБ-НАВИГАЦИЯ (упрощённая) ==========
 function initTabs() {
     const tabs = document.querySelectorAll('.nav-tab');
     const panes = document.querySelectorAll('.tab-content');
@@ -50,8 +50,11 @@ function initTabs() {
         });
     });
 
-    const activeTab = document.querySelector('.nav-tab.active')?.getAttribute('data-tab') || 'dashboard';
-    loadTabData(activeTab);
+    // Загружаем данные только если мы на странице хаба
+    if (window.location.pathname === '/hub') {
+        const activeTab = document.querySelector('.nav-tab.active')?.getAttribute('data-tab') || 'dashboard';
+        loadTabData(activeTab);
+    }
 }
 
 async function loadTabData(tabId) {
@@ -78,6 +81,20 @@ async function loadTabData(tabId) {
         case 'registration-requests':
             await loadRegistrationRequests();
             break;
+    }
+}
+
+// ========== ОБРАБОТКА ЯКОРЕЙ ПРИ ЗАГРУЗКЕ ==========
+function handleHashOnLoad() {
+    const hash = window.location.hash;
+    if (hash) {
+        const tabId = hash.substring(1);
+        const tabButton = document.querySelector(`.nav-tab[data-tab="${tabId}"]`);
+        if (tabButton) {
+            setTimeout(() => {
+                tabButton.click();
+            }, 100);
+        }
     }
 }
 
@@ -412,16 +429,13 @@ notificationStyle.textContent = `
 `;
 document.head.appendChild(notificationStyle);
 
-// ========== ЗАГРУЗКА УЧАСТНИКОВ ПО РОЛЯМ С ОНЛАЙН-СТАТУСОМ И СОРТИРОВКОЙ ==========
-// ========== ЗАГРУЗКА УЧАСТНИКОВ ПО РОЛЯМ (ДЛЯ ВСЕХ) ==========
+// ========== ЗАГРУЗКА УЧАСТНИКОВ ПО РОЛЯМ ==========
 async function loadTeamMembers() {
     const container = document.getElementById('teamMembersContainer');
     if (!container) return;
 
     try {
-        // Получаем список пользователей (публичный эндпоинт)
         const usersResponse = await fetch('/api/public-users');
-        // Получаем список онлайн пользователей
         const onlineResponse = await fetch('/api/online-users');
 
         if (usersResponse.ok && onlineResponse.ok) {
@@ -432,27 +446,19 @@ async function loadTeamMembers() {
             const currentUser = window.userData.username;
             const isAdmin = window.userData.isAdmin;
 
-            // Убираем дубликаты по id
             const uniqueUsers = [];
             const userIds = new Set();
             for (const user of users) {
                 if (!userIds.has(user.id)) {
                     userIds.add(user.id);
-                    // Добавляем поле isOnline для сортировки
                     user.isOnline = onlineUserIds.has(user.id);
                     uniqueUsers.push(user);
                 }
             }
             users = uniqueUsers;
 
-            // Группируем пользователей по ролям
             const groupedUsers = {
-                'ADMIN': [],
-                'BUILDER': [],
-                'SCREENWRITER': [],
-                'VOICE_ACTOR': [],
-                'ANIMATOR': [],
-                'USER': []
+                'ADMIN': [], 'BUILDER': [], 'SCREENWRITER': [], 'VOICE_ACTOR': [], 'ANIMATOR': [], 'USER': []
             };
 
             const roleIcons = {
@@ -465,48 +471,35 @@ async function loadTeamMembers() {
             };
 
             const roleColors = {
-                'ADMIN': 'admin',
-                'BUILDER': 'builder',
-                'SCREENWRITER': 'screenwriter',
-                'VOICE_ACTOR': 'voice-actor',
-                'ANIMATOR': 'animator',
-                'USER': 'user'
+                'ADMIN': 'admin', 'BUILDER': 'builder', 'SCREENWRITER': 'screenwriter',
+                'VOICE_ACTOR': 'voice-actor', 'ANIMATOR': 'animator', 'USER': 'user'
             };
 
             const roleNames = {
-                'ADMIN': '👑 Администраторы',
-                'BUILDER': '🏗️ Строители',
-                'SCREENWRITER': '✍️ Сценаристы',
-                'VOICE_ACTOR': '🎙️ Актёры озвучки',
-                'ANIMATOR': '🎬 Аниматоры',
-                'USER': '👤 Участники'
+                'ADMIN': '👑 Администраторы', 'BUILDER': '🏗️ Строители',
+                'SCREENWRITER': '✍️ Сценаристы', 'VOICE_ACTOR': '🎙️ Актёры озвучки',
+                'ANIMATOR': '🎬 Аниматоры', 'USER': '👤 Участники'
             };
 
-            // Заполняем группы
             users.forEach(user => {
                 if (user.roles && user.roles.length > 0) {
                     if (user.roles.includes('ADMIN')) {
-                        const alreadyInAdmin = groupedUsers['ADMIN'].some(u => u.id === user.id);
-                        if (!alreadyInAdmin) groupedUsers['ADMIN'].push(user);
+                        if (!groupedUsers['ADMIN'].some(u => u.id === user.id)) groupedUsers['ADMIN'].push(user);
                     } else {
                         user.roles.forEach(role => {
-                            if (groupedUsers[role] && role !== 'ADMIN') {
-                                const alreadyInRole = groupedUsers[role].some(u => u.id === user.id);
-                                if (!alreadyInRole) groupedUsers[role].push(user);
+                            if (groupedUsers[role] && role !== 'ADMIN' && !groupedUsers[role].some(u => u.id === user.id)) {
+                                groupedUsers[role].push(user);
                             }
                         });
-                        if (!user.roles.some(r => r !== 'ADMIN' && r !== 'USER')) {
-                            const alreadyInUser = groupedUsers['USER'].some(u => u.id === user.id);
-                            if (!alreadyInUser) groupedUsers['USER'].push(user);
+                        if (!user.roles.some(r => r !== 'ADMIN' && r !== 'USER') && !groupedUsers['USER'].some(u => u.id === user.id)) {
+                            groupedUsers['USER'].push(user);
                         }
                     }
                 } else {
-                    const alreadyInUser = groupedUsers['USER'].some(u => u.id === user.id);
-                    if (!alreadyInUser) groupedUsers['USER'].push(user);
+                    if (!groupedUsers['USER'].some(u => u.id === user.id)) groupedUsers['USER'].push(user);
                 }
             });
 
-            // СОРТИРОВКА: сначала онлайн, потом оффлайн
             for (const role in groupedUsers) {
                 groupedUsers[role].sort((a, b) => {
                     if (a.isOnline && !b.isOnline) return -1;
@@ -540,7 +533,6 @@ async function loadTeamMembers() {
                             </div>
                             <div class="member-status ${isOnline ? 'online' : 'offline'}" title="${isOnline ? 'Онлайн' : 'Оффлайн'}"></div>
                     `;
-                    // Кнопка удаления ТОЛЬКО ДЛЯ АДМИНОВ И НЕ ДЛЯ СЕБЯ
                     if (isAdmin && !isCurrentUser) {
                         html += `
                             <div class="member-actions">
@@ -564,7 +556,7 @@ async function loadTeamMembers() {
     }
 }
 
-// ========== HEARTBEAT (ОБНОВЛЕНИЕ СТАТУСА ОНЛАЙН) ==========
+// ========== HEARTBEAT ==========
 let heartbeatInterval = null;
 let currentUserId = null;
 
@@ -595,12 +587,7 @@ async function sendHeartbeat() {
             const csrf = getCsrfToken();
             const headers = { 'Content-Type': 'application/json' };
             if (csrf) headers[csrf.header] = csrf.token;
-
-            await fetch('/api/heartbeat', {
-                method: 'POST',
-                headers: headers,
-                body: JSON.stringify({ userId: currentUserId })
-            });
+            await fetch('/api/heartbeat', { method: 'POST', headers: headers, body: JSON.stringify({ userId: currentUserId }) });
         } catch (error) {
             console.error('Heartbeat error:', error);
         }
@@ -609,8 +596,8 @@ async function sendHeartbeat() {
 
 function startHeartbeat() {
     if (heartbeatInterval) clearInterval(heartbeatInterval);
-    sendHeartbeat(); // сразу отправляем
-    heartbeatInterval = setInterval(sendHeartbeat, 30000); // каждые 30 секунд
+    sendHeartbeat();
+    heartbeatInterval = setInterval(sendHeartbeat, 30000);
 }
 
 function stopHeartbeat() {
@@ -620,12 +607,117 @@ function stopHeartbeat() {
     }
 }
 
+// ========== ПРОВЕРКА ПРАВ АДМИНИСТРАТОРА ==========
+async function checkAdminRights() {
+    try {
+        const response = await fetch('/api/public-users');
+        if (response.ok) {
+            const users = await response.json();
+            const currentUsername = window.userData.username;
+            const currentUser = users.find(u => u.username === currentUsername);
+
+            if (currentUser) {
+                const isAdmin = currentUser.roles.includes('ADMIN');
+                window.userData.isAdmin = isAdmin;
+
+                const userRoleSpan = document.getElementById('userRoleSpan');
+                if (userRoleSpan) {
+                    userRoleSpan.textContent = isAdmin ? 'Админ' : 'Сотрудник';
+                }
+
+                const adminButtons = document.querySelectorAll('.admin-only');
+                if (isAdmin) {
+                    adminButtons.forEach(btn => btn.style.display = 'inline-flex');
+                } else {
+                    adminButtons.forEach(btn => btn.style.display = 'none');
+                }
+
+                const adminWelcomeDiv = document.getElementById('adminWelcomeMessage');
+                if (adminWelcomeDiv) {
+                    adminWelcomeDiv.style.display = isAdmin ? 'block' : 'none';
+                }
+
+                return isAdmin;
+            }
+        }
+    } catch (error) {
+        console.error('Ошибка проверки прав:', error);
+    }
+    return window.userData.isAdmin;
+}
+
+// ========== ЗАГРУЗКА АВАТАРКИ В ХЕДЕР ==========
+async function loadHeaderAvatar() {
+    try {
+        const response = await fetch('/api/current-user');
+        if (response.ok) {
+            const user = await response.json();
+            const headerAvatar = document.getElementById('headerAvatar');
+            if (headerAvatar) {
+                if (user && user.avatar && user.avatar !== "") {
+                    // Добавляем timestamp для обхода кэша
+                    const avatarUrl = user.avatar.includes('?') ? `${user.avatar}&t=${Date.now()}` : `${user.avatar}?t=${Date.now()}`;
+                    headerAvatar.innerHTML = `<img src="${avatarUrl}" alt="Avatar" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;">`;
+                } else {
+                    headerAvatar.innerHTML = `<i class="fas fa-user-astronaut"></i>`;
+                }
+            }
+        }
+    } catch (error) {
+        console.error('Ошибка загрузки аватарки в хедер:', error);
+    }
+}
+
+// ========== СОХРАНЕНИЕ АВАТАРКИ ==========
+async function saveAvatar(file) {
+    const formData = new FormData();
+    formData.append('avatar', file);
+
+    const csrf = getCsrfToken();
+    const headers = {};
+    if (csrf) headers[csrf.header] = csrf.token;
+
+    try {
+        const response = await fetch('/api/user/avatar', {
+            method: 'POST',
+            headers: headers,
+            body: formData
+        });
+
+        if (response.ok) {
+            const data = await response.json();
+
+            // Обновляем аватарку в профиле с timestamp
+            const preview = document.getElementById('avatarPreview');
+            if (preview) {
+                preview.innerHTML = `<img src="${data.avatarUrl}" alt="Avatar">`;
+            }
+
+            // Обновляем аватарку в хедере с timestamp
+            const headerAvatar = document.getElementById('headerAvatar');
+            if (headerAvatar) {
+                headerAvatar.innerHTML = `<img src="${data.avatarUrl}" alt="Avatar" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;">`;
+            }
+
+            // Принудительно перезагружаем данные пользователя
+            await loadHeaderAvatar();
+
+            showNotification('✅ Аватар обновлён', 'success');
+        } else {
+            const error = await response.json();
+            showNotification(`❌ Ошибка: ${error.error || 'Не удалось загрузить аватар'}`, 'error');
+        }
+    } catch (error) {
+        console.error('Ошибка:', error);
+        showNotification('❌ Ошибка соединения', 'error');
+    }
+}
+
 // ========== УПРАВЛЕНИЕ ПОЛЬЗОВАТЕЛЯМИ ==========
 async function loadUsersManagement() {
     const container = document.getElementById('usersManagementContainer');
     if (!container) return;
 
-    // Проверяем права администратора
     const isAdmin = await checkAdminRights();
     if (!isAdmin) {
         container.innerHTML = '<div class="error-message">⛔ Доступ запрещён. Требуются права администратора.</div>';
@@ -638,7 +730,6 @@ async function loadUsersManagement() {
             let users = await response.json();
             const currentUser = window.userData.username;
 
-            // Убираем дубликаты по id
             const uniqueUsers = [];
             const userIds = new Set();
             for (const user of users) {
@@ -649,92 +740,25 @@ async function loadUsersManagement() {
             }
             users = uniqueUsers;
 
-            let html = `
-                <div class="users-table-container">
-                    <table class="users-management-table">
-                        <thead>
-                            <tr>
-                                <th style="text-align: center;">Пользователь</th>
-                                <th style="text-align: center;">Текущие роли</th>
-                                <th style="text-align: center;">Добавить роль</th>
-                                <th style="text-align: center;">Удалить роль</th>
-                                <th style="text-align: center;">Действия</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-            `;
+            let html = `<div class="users-table-container"><table class="users-management-table">
+                <thead><tr><th>Пользователь</th><th>Текущие роли</th><th>Добавить роль</th><th>Удалить роль</th><th>Действия</th></tr></thead><tbody>`;
 
             users.forEach(user => {
                 const isCurrentUser = user.username === currentUser;
                 const currentRoles = user.roles || [];
 
-                html += `
-                    <tr data-user-id="${user.id}">
-                        <td style="text-align: left;">
-                            <div class="user-cell" style="justify-content: flex-start;">
-                                <div class="user-avatar-small">
-                                    <i class="fas ${getUserIcon(currentRoles)}"></i>
-                                </div>
-                                <span>${escapeHtml(user.username)}</span>
-                                ${isCurrentUser ? '<span class="current-user-badge">(Вы)</span>' : ''}
-                            </div>
-                        </td>
-                        <td style="text-align: center;">
-                            <div class="roles-badges" id="roles-${user.id}" style="justify-content: center;">
-                                ${currentRoles.map(role => `
-                                    <span class="role-badge role-${role.toLowerCase()}">
-                                        ${getRoleName(role)}
-                                        <button class="remove-role-btn" onclick="removeRoleFromUser(${user.id}, '${role}')" title="Удалить роль">✖</button>
-                                    </span>
-                                `).join('')}
-                                ${currentRoles.length === 0 ? '<span class="no-roles">Нет ролей</span>' : ''}
-                            </div>
-                        </td>
-                        <td style="text-align: center;">
-                            <div class="role-selector" style="justify-content: center;">
-                                <select class="role-select" id="select-${user.id}" style="width: 140px;">
-                                    <option value="">-- Выбрать роль --</option>
-                                    <option value="ADMIN">👑 Администратор</option>
-                                    <option value="BUILDER">🏗️ Строитель</option>
-                                    <option value="SCREENWRITER">✍️ Сценарист</option>
-                                    <option value="VOICE_ACTOR">🎙️ Актёр озвучки</option>
-                                    <option value="ANIMATOR">🎬 Аниматор</option>
-                                </select>
-                                <button class="add-role-btn" data-user-id="${user.id}" style="margin-left: 5px;">
-                                    <i class="fas fa-plus"></i>
-                                </button>
-                            </div>
-                        </td>
-                        <td style="text-align: center;">
-                            <div class="role-selector" style="justify-content: center;">
-                                <select class="role-select-remove" id="remove-select-${user.id}" style="width: 140px;">
-                                    <option value="">-- Выбрать роль --</option>
-                                    ${currentRoles.map(role => `<option value="${role}">${getRoleName(role)}</option>`).join('')}
-                                </select>
-                                <button class="remove-role-btn-table" data-user-id="${user.id}" style="margin-left: 5px;">
-                                    <i class="fas fa-minus"></i>
-                                </button>
-                            </div>
-                        </td>
-                        <td style="text-align: center;">
-                            ${!isCurrentUser ? `
-                                <button class="delete-user-table-btn" onclick="deleteUser(${user.id}, '${escapeHtml(user.username)}')" style="margin: 0 auto;">
-                                    <i class="fas fa-trash"></i> Удалить
-                                </button>
-                            ` : '<span class="self-hint">Вы не можете удалить себя</span>'}
-                        </td>
-                    </tr>
-                `;
+                html += `<tr>
+                    <td><div class="user-cell"><div class="user-avatar-small"><i class="fas ${getUserIcon(currentRoles)}"></i></div><span>${escapeHtml(user.username)}</span>${isCurrentUser ? '<span class="current-user-badge">(Вы)</span>' : ''}</div></td>
+                    <td><div class="roles-badges">${currentRoles.map(role => `<span class="role-badge role-${role.toLowerCase()}">${getRoleName(role)}<button class="remove-role-btn" onclick="removeRoleFromUser(${user.id}, '${role}')">✖</button></span>`).join('')}${currentRoles.length === 0 ? '<span class="no-roles">Нет ролей</span>' : ''}</div></td>
+                    <td><div class="role-selector"><select class="role-select" id="select-${user.id}"><option value="">-- Выбрать роль --</option><option value="ADMIN">👑 Администратор</option><option value="BUILDER">🏗️ Строитель</option><option value="SCREENWRITER">✍️ Сценарист</option><option value="VOICE_ACTOR">🎙️ Актёр озвучки</option><option value="ANIMATOR">🎬 Аниматор</option></select><button class="add-role-btn" data-user-id="${user.id}"><i class="fas fa-plus"></i></button></div></td>
+                    <td><div class="role-selector"><select class="role-select-remove" id="remove-select-${user.id}"><option value="">-- Выбрать роль --</option>${currentRoles.map(role => `<option value="${role}">${getRoleName(role)}</option>`).join('')}</select><button class="remove-role-btn-table" data-user-id="${user.id}"><i class="fas fa-minus"></i></button></div></td>
+                    <td>${!isCurrentUser ? `<button class="delete-user-table-btn" onclick="deleteUser(${user.id}, '${escapeHtml(user.username)}')"><i class="fas fa-trash"></i> Удалить</button>` : '<span class="self-hint">Вы не можете удалить себя</span>'}</td>
+                </tr>`;
             });
 
-            html += `
-                        </tbody>
-                    </table>
-                </div>
-            `;
+            html += `</tbody></table></div>`;
             container.innerHTML = html;
 
-            // Обработчики добавления ролей
             document.querySelectorAll('.add-role-btn').forEach(btn => {
                 btn.addEventListener('click', async () => {
                     const userId = btn.getAttribute('data-user-id');
@@ -747,7 +771,6 @@ async function loadUsersManagement() {
                 });
             });
 
-            // Обработчики удаления ролей
             document.querySelectorAll('.remove-role-btn-table').forEach(btn => {
                 btn.addEventListener('click', async () => {
                     const userId = btn.getAttribute('data-user-id');
@@ -759,9 +782,6 @@ async function loadUsersManagement() {
                     }
                 });
             });
-
-        } else {
-            container.innerHTML = '<div class="error-message">Ошибка загрузки пользователей</div>';
         }
     } catch (error) {
         console.error('Ошибка:', error);
@@ -770,14 +790,7 @@ async function loadUsersManagement() {
 }
 
 function getRoleName(role) {
-    const roles = {
-        'ADMIN': 'Администратор',
-        'BUILDER': 'Строитель',
-        'SCREENWRITER': 'Сценарист',
-        'VOICE_ACTOR': 'Актёр озвучки',
-        'ANIMATOR': 'Аниматор',
-        'USER': 'Участник'
-    };
+    const roles = { 'ADMIN': 'Администратор', 'BUILDER': 'Строитель', 'SCREENWRITER': 'Сценарист', 'VOICE_ACTOR': 'Актёр озвучки', 'ANIMATOR': 'Аниматор', 'USER': 'Участник' };
     return roles[role] || role;
 }
 
@@ -804,20 +817,10 @@ async function addRoleToUser(userId, role) {
 
                     if (updateResponse.ok) {
                         showNotification(`✅ Роль ${getRoleName(role)} добавлена пользователю ${user.username}`, 'success');
-
-                        // Просто обновляем данные без перезагрузки
                         await loadUsersManagement();
                         await loadTeamMembers();
                         await loadStats();
-
-                        // Проверяем права заново (если это текущий пользователь)
-                        if (user.username === window.userData.username) {
-                            await checkAdminRights();
-                            showNotification('👑 Ваши права обновлены!', 'success');
-                        }
-                    } else {
-                        const errorData = await updateResponse.json();
-                        showNotification(`❌ Ошибка: ${errorData.error || 'Неизвестная ошибка'}`, 'error');
+                        if (user.username === window.userData.username) await checkAdminRights();
                     }
                 } else {
                     showNotification('⚠️ У пользователя уже есть эта роль', 'error');
@@ -861,20 +864,10 @@ async function removeRoleFromUser(userId, role) {
 
                 if (updateResponse.ok) {
                     showNotification(`✅ Роль ${getRoleName(role)} удалена у пользователя ${user.username}`, 'success');
-
-                    // Просто обновляем данные без перезагрузки
                     await loadUsersManagement();
                     await loadTeamMembers();
                     await loadStats();
-
-                    // Проверяем права заново (если это текущий пользователь)
-                    if (user.username === currentUser) {
-                        await checkAdminRights();
-                        showNotification('👑 Ваши права обновлены!', 'success');
-                    }
-                } else {
-                    const errorData = await updateResponse.json();
-                    showNotification(`❌ Ошибка: ${errorData.error || 'Неизвестная ошибка'}`, 'error');
+                    if (user.username === currentUser) await checkAdminRights();
                 }
             }
         }
@@ -908,9 +901,6 @@ async function deleteUser(userId, username) {
             await loadTeamMembers();
             await loadUsersManagement();
             await loadStats();
-        } else {
-            const data = await response.json();
-            showNotification(`❌ ${data.error || 'Ошибка при удалении'}`, 'error');
         }
     } catch (error) {
         console.error('Ошибка:', error);
@@ -923,7 +913,6 @@ async function loadRegistrationRequests() {
     const container = document.getElementById('requestsContainer');
     if (!container) return;
 
-    // Проверяем права администратора
     const isAdmin = await checkAdminRights();
     if (!isAdmin) {
         container.innerHTML = '<div class="error-message">⛔ Доступ запрещён. Требуются права администратора.</div>';
@@ -942,22 +931,9 @@ async function loadRegistrationRequests() {
             let html = '';
             requests.forEach(req => {
                 const date = new Date(req.requestedAt).toLocaleString('ru-RU');
-                html += `
-                    <div class="request-card" data-id="${req.id}">
-                        <div class="request-info">
-                            <div class="request-username"><i class="fas fa-user-plus"></i> ${escapeHtml(req.username)}</div>
-                            <div class="request-date"><i class="fas fa-calendar-alt"></i> ${date}</div>
-                        </div>
-                        <div class="request-actions">
-                            <button class="approve-btn" onclick="approveRequest(${req.id})"><i class="fas fa-check-circle"></i> Принять</button>
-                            <button class="reject-btn" onclick="rejectRequest(${req.id})"><i class="fas fa-times-circle"></i> Отклонить</button>
-                        </div>
-                    </div>
-                `;
+                html += `<div class="request-card"><div class="request-info"><div class="request-username"><i class="fas fa-user-plus"></i> ${escapeHtml(req.username)}</div><div class="request-date"><i class="fas fa-calendar-alt"></i> ${date}</div></div><div class="request-actions"><button class="approve-btn" onclick="approveRequest(${req.id})"><i class="fas fa-check-circle"></i> Принять</button><button class="reject-btn" onclick="rejectRequest(${req.id})"><i class="fas fa-times-circle"></i> Отклонить</button></div></div>`;
             });
             container.innerHTML = html || '<div class="empty-state">Нет активных заявок</div>';
-        } else {
-            container.innerHTML = '<div class="error-message">❌ Ошибка загрузки заявок</div>';
         }
     } catch (error) {
         console.error('Ошибка:', error);
@@ -967,11 +943,9 @@ async function loadRegistrationRequests() {
 
 async function approveRequest(requestId) {
     if (!confirm('✅ Принять заявку? Пользователь будет создан с ролью USER.')) return;
-
     const csrf = getCsrfToken();
     const headers = {};
     if (csrf) headers[csrf.header] = csrf.token;
-
     try {
         const response = await fetch(`/api/admin/approve-request/${requestId}`, { method: 'POST', headers });
         if (response.ok) {
@@ -980,9 +954,6 @@ async function approveRequest(requestId) {
             await loadStats();
             await loadTeamMembers();
             await loadUsersManagement();
-        } else {
-            const data = await response.json();
-            showNotification('❌ ' + (data.error || 'Ошибка'), 'error');
         }
     } catch (error) {
         console.error('Ошибка:', error);
@@ -990,75 +961,16 @@ async function approveRequest(requestId) {
     }
 }
 
-// ========== ПРОВЕРКА ПРАВ АДМИНИСТРАТОРА ==========
-// ========== ПРОВЕРКА ПРАВ АДМИНИСТРАТОРА ==========
-async function checkAdminRights() {
-    try {
-        const response = await fetch('/api/public-users');
-        if (response.ok) {
-            const users = await response.json();
-            const currentUsername = window.userData.username;
-            const currentUser = users.find(u => u.username === currentUsername);
-
-            if (currentUser) {
-                const isAdmin = currentUser.roles.includes('ADMIN');
-                const wasAdmin = window.userData.isAdmin;
-
-                // Обновляем глобальную переменную
-                window.userData.isAdmin = isAdmin;
-
-                // Обновляем текст роли в хедере
-                const userRoleSpan = document.getElementById('userRoleSpan');
-                if (userRoleSpan) {
-                    userRoleSpan.textContent = isAdmin ? 'Админ' : 'Сотрудник';
-                }
-
-                // Показываем или скрываем админские кнопки (с классом admin-only)
-                const adminButtons = document.querySelectorAll('.admin-only');
-                if (isAdmin) {
-                    adminButtons.forEach(btn => btn.style.display = 'inline-flex');
-                } else {
-                    adminButtons.forEach(btn => btn.style.display = 'none');
-                }
-
-                // Управляем приветствием администратора в welcome-section (только здесь!)
-                const adminWelcomeDiv = document.getElementById('adminWelcomeMessage');
-                if (adminWelcomeDiv) {
-                    if (isAdmin) {
-                        adminWelcomeDiv.style.display = 'block';
-                    } else {
-                        adminWelcomeDiv.style.display = 'none';
-                    }
-                }
-
-                // Если права изменились, показываем уведомление
-                if (wasAdmin !== undefined && wasAdmin !== isAdmin) {
-                    showNotification(`Ваши права обновлены! Теперь вы: ${isAdmin ? 'Администратор' : 'Сотрудник'}`, 'info');
-                }
-
-                return isAdmin;
-            }
-        }
-    } catch (error) {
-        console.error('Ошибка проверки прав:', error);
-    }
-    return window.userData.isAdmin;
-}
-
 async function rejectRequest(requestId) {
     if (!confirm('❌ Отклонить заявку? Пользователь не будет создан.')) return;
-
     const csrf = getCsrfToken();
     const headers = {};
     if (csrf) headers[csrf.header] = csrf.token;
-
     try {
         const response = await fetch(`/api/admin/reject-request/${requestId}`, { method: 'POST', headers });
         if (response.ok) {
             showNotification('❌ Заявка отклонена', 'success');
             await loadRegistrationRequests();
-        } else {
-            showNotification('❌ Ошибка при отклонении заявки', 'error');
         }
     } catch (error) {
         console.error('Ошибка:', error);
@@ -1066,50 +978,6 @@ async function rejectRequest(requestId) {
     }
 }
 
-// ========== ОБНОВЛЕНИЕ ХЕДЕРА ПОСЛЕ СМЕНЫ РОЛЕЙ ==========
-async function updateHeaderAfterRoleChange() {
-    try {
-        // Получаем обновлённые данные пользователя
-        const response = await fetch('/api/public-users');
-        if (response.ok) {
-            const users = await response.json();
-            const currentUser = window.userData.username;
-            const user = users.find(u => u.username === currentUser);
-
-            if (user) {
-                const isAdmin = user.roles.includes('ADMIN');
-
-                // Обновляем глобальную переменную
-                window.userData.isAdmin = isAdmin;
-
-                // Находим элементы хедера, которые зависят от роли
-                const adminButtons = document.querySelectorAll('.nav-tab[data-tab="registration-requests"], .nav-tab[data-tab="users-management"]');
-
-                if (isAdmin) {
-                    // Показываем админские кнопки
-                    adminButtons.forEach(btn => {
-                        btn.style.display = 'inline-flex';
-                    });
-                    // Обновляем текст роли
-                    const userRoleSpan = document.querySelector('.user-role');
-                    if (userRoleSpan) userRoleSpan.textContent = 'Админ';
-                } else {
-                    // Скрываем админские кнопки
-                    adminButtons.forEach(btn => {
-                        btn.style.display = 'none';
-                    });
-                    // Обновляем текст роли
-                    const userRoleSpan = document.querySelector('.user-role');
-                    if (userRoleSpan) userRoleSpan.textContent = 'Сотрудник';
-                }
-
-                showNotification(`Роли обновлены! Теперь вы: ${isAdmin ? 'Администратор' : 'Сотрудник'}`, 'success');
-            }
-        }
-    } catch (error) {
-        console.error('Ошибка обновления хедера:', error);
-    }
-}
 
 // ========== ИНИЦИАЛИЗАЦИЯ ==========
 document.addEventListener('DOMContentLoaded', async () => {
@@ -1122,6 +990,12 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // Проверяем права администратора при загрузке
     await checkAdminRights();
+
+    // Загружаем аватарку в хедер
+    await loadHeaderAvatar();
+
+    // Обрабатываем якорь для перехода на нужную вкладку
+    handleHashOnLoad();
 
     // Останавливаем heartbeat при закрытии/уходе со страницы
     window.addEventListener('beforeunload', () => {
@@ -1139,7 +1013,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (document.querySelector('#dashboard-tab.active')) {
             await loadTeamMembers();
         }
-        // Проверяем права администратора каждые 30 секунд
         await checkAdminRights();
     }, 30000);
 });

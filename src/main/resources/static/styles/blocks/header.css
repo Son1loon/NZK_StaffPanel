@@ -17,11 +17,19 @@
     flex-wrap: nowrap;
 }
 
+/* Логотип */
 .logo-block {
     display: flex;
     align-items: center;
     gap: 0.6rem;
     flex-shrink: 0;
+}
+
+.logo-link {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    text-decoration: none;
 }
 
 .logo-icon {
@@ -47,6 +55,7 @@
     color: #7c8bd6;
 }
 
+/* Навигация */
 .hub-nav {
     display: flex;
     align-items: center;
@@ -75,6 +84,7 @@
     align-items: center;
     gap: 0.4rem;
     white-space: nowrap;
+    text-decoration: none;
 }
 
 .nav-tab:hover {
@@ -87,6 +97,7 @@
     color: white;
 }
 
+/* Блок пользователя */
 .user-shortcut {
     display: flex;
     align-items: center;
@@ -97,15 +108,31 @@
     flex-shrink: 0;
 }
 
+.user-avatar-link {
+    text-decoration: none;
+    cursor: pointer;
+}
+
 .user-avatar {
-    width: 28px;
-    height: 28px;
-    background: linear-gradient(135deg, #667eea, #764ba2);
+    width: 32px;
+    height: 32px;
     border-radius: 50%;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 0.8rem;
+    overflow: hidden;
+    background: linear-gradient(135deg, #667eea, #764ba2);
+}
+
+.user-avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.user-avatar i {
+    font-size: 1rem;
+    color: white;
 }
 
 .user-meta {
@@ -114,10 +141,15 @@
     line-height: 1.2;
 }
 
-.user-name {
+.user-name-link {
     font-size: 0.75rem;
     font-weight: 600;
     color: white;
+    text-decoration: none;
+}
+
+.user-name-link:hover {
+    color: #667eea;
 }
 
 .user-role {
@@ -128,8 +160,8 @@
 .logout-icon-btn {
     background: rgba(239, 68, 68, 0.15);
     border: none;
-    width: 24px;
-    height: 24px;
+    width: 28px;
+    height: 28px;
     border-radius: 50%;
     color: #f87171;
     cursor: pointer;
@@ -137,12 +169,14 @@
     align-items: center;
     justify-content: center;
     font-size: 0.7rem;
+    transition: background 0.2s;
 }
 
 .logout-icon-btn:hover {
     background: rgba(239, 68, 68, 0.3);
 }
 
+/* Адаптив для планшетов */
 @media (max-width: 900px) {
     .hub-header {
         padding: 0.5rem 1rem;
@@ -169,6 +203,7 @@
     }
 }
 
+/* Адаптив для мобильных */
 @media (max-width: 600px) {
     .header-container {
         gap: 0.5rem;
@@ -186,5 +221,10 @@
         width: 30px;
         height: 30px;
         font-size: 0.9rem;
+    }
+
+    .user-avatar {
+        width: 28px;
+        height: 28px;
     }
 }

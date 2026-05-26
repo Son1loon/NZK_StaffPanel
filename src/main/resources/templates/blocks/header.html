@@ -4,55 +4,57 @@
     <header class="hub-header">
         <div class="header-container">
             <div class="logo-block">
-                <div class="logo-icon">
-                    <i class="fas fa-cube"></i>
-                </div>
-                <div class="logo-text">
-                    <span class="logo-nzk">NZK</span>
-                    <span class="logo-sub">Staff Hub</span>
-                </div>
+                <a href="/hub" class="logo-link">
+                    <div class="logo-icon">
+                        <i class="fas fa-cube"></i>
+                    </div>
+                    <div class="logo-text">
+                        <span class="logo-nzk">NZK</span>
+                        <span class="logo-sub">Staff Hub</span>
+                    </div>
+                </a>
             </div>
 
             <nav class="hub-nav">
-                <button class="nav-tab active" data-tab="dashboard">
+                <a href="/hub" class="nav-tab" th:classappend="${currentPage == 'hub' ? 'active' : ''}" data-tab="dashboard">
                     <i class="fas fa-chalkboard-user"></i>
                     <span>Обзор</span>
-                </button>
-                <button class="nav-tab" data-tab="builders">
+                </a>
+                <a href="/hub#builders" class="nav-tab" data-tab="builders">
                     <i class="fas fa-hard-hat"></i>
                     <span>Строители</span>
-                </button>
-                <button class="nav-tab" data-tab="voice-actors">
+                </a>
+                <a href="/hub#voice-actors" class="nav-tab" data-tab="voice-actors">
                     <i class="fas fa-microphone-alt"></i>
                     <span>Актёры</span>
-                </button>
-                <button class="nav-tab" data-tab="ideas">
+                </a>
+                <a href="/hub#ideas" class="nav-tab" data-tab="ideas">
                     <i class="fas fa-lightbulb"></i>
                     <span>Идеи</span>
-                </button>
-                <button class="nav-tab" data-tab="audio">
+                </a>
+                <a href="/hub#audio" class="nav-tab" data-tab="audio">
                     <i class="fas fa-head-side-headphones"></i>
                     <span>Звуки</span>
-                </button>
-                <!-- Админские кнопки - скрыты по умолчанию, показываются через JS -->
-                <button class="nav-tab admin-only" data-tab="registration-requests" style="display: none;">
+                </a>
+                <a th:if="${isAdmin}" href="/hub#registration-requests" class="nav-tab admin-only" data-tab="registration-requests" style="display: none;">
                     <i class="fas fa-clipboard-list"></i>
                     <span>Заявки</span>
                     <span class="request-badge" id="requestsBadge" style="display: none;">!</span>
-                </button>
-                <button class="nav-tab admin-only" data-tab="users-management" style="display: none;">
+                </a>
+                <a th:if="${isAdmin}" href="/hub#users-management" class="nav-tab admin-only" data-tab="users-management" style="display: none;">
                     <i class="fas fa-users-gear"></i>
                     <span>Управление</span>
-                </button>
-                </button>
+                </a>
             </nav>
 
             <div class="user-shortcut">
-                <div class="user-avatar">
-                    <i class="fas fa-user-astronaut"></i>
-                </div>
+                <a href="/profile" class="user-avatar-link">
+                    <div class="user-avatar" id="headerAvatar">
+                        <i class="fas fa-user-astronaut"></i>
+                    </div>
+                </a>
                 <div class="user-meta">
-                    <span class="user-name" th:text="${username}">Admin</span>
+                    <a href="/profile" class="user-name-link" th:text="${username}">Admin</a>
                     <span class="user-role" id="userRoleSpan">Сотрудник</span>
                 </div>
                 <form th:action="@{/logout}" method="post" style="margin: 0; display: inline;">
