@@ -404,6 +404,7 @@ public class ApiController {
             Map<String, Object> userMap = new HashMap<>();
             userMap.put("id", user.getId());
             userMap.put("username", user.getUsername());
+            userMap.put("avatar", user.getAvatar());  // <-- ДОБАВЬ ЭТУ СТРОКУ
 
             List<String> roles = user.getRoles().stream()
                     .map(role -> role.name().replace("ROLE_", ""))

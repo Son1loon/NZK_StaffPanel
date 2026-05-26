@@ -429,7 +429,7 @@ notificationStyle.textContent = `
 `;
 document.head.appendChild(notificationStyle);
 
-// ========== ЗАГРУЗКА УЧАСТНИКОВ ПО РОЛЯМ ==========
+// ========== ЗАГРУЗКА УЧАСТНИКОВ ПО РОЛЯМ С АВАТАРКАМИ ==========
 async function loadTeamMembers() {
     const container = document.getElementById('teamMembersContainer');
     if (!container) return;
@@ -522,10 +522,12 @@ async function loadTeamMembers() {
                 members.forEach(member => {
                     const isCurrentUser = member.username === currentUser;
                     const isOnline = member.isOnline;
+                    const avatarUrl = member.avatar;
+
                     html += `
                         <div class="member-card" data-user-id="${member.id}">
                             <div class="member-avatar">
-                                <i class="fas ${getUserIcon(member.roles)}"></i>
+                                ${avatarUrl ? `<img src="${avatarUrl}?t=${Date.now()}" alt="Avatar" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;">` : `<i class="fas ${getUserIcon(member.roles)}"></i>`}
                             </div>
                             <div class="member-name">
                                 ${escapeHtml(member.username)}

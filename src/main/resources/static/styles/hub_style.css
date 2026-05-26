@@ -757,6 +757,7 @@ audio {
     background: #1a1f35;
 }
 
+/* Аватарки в списке участников */
 .member-avatar {
     width: 32px;
     height: 32px;
@@ -767,6 +768,14 @@ audio {
     justify-content: center;
     font-size: 0.9rem;
     color: #ffda88;
+    overflow: hidden;
+    flex-shrink: 0;
+}
+
+.member-avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
 }
 
 .member-name {
