@@ -81,7 +81,25 @@
 					<i class="fas fa-plus"></i> Выдать таск
 				</button>
 			</div>
-			<div id="tasksContainer">...</div>
+
+			<!-- Список строителей -->
+			<div class="builders-list-section">
+				<h3><i class="fas fa-users"></i> Наши строители</h3>
+				<div id="buildersListContainer" class="builders-grid">
+					<div class="loading-spinner">Загрузка списка строителей...</div>
+				</div>
+			</div>
+
+			<!-- Контейнер для фильтра (JS добавит сюда элементы) -->
+			<div id="filterContainer"></div>
+
+			<!-- Список активных задач -->
+			<div class="tasks-list-section">
+				<h3><i class="fas fa-tasks"></i> Задачи</h3>
+				<div id="tasksContainer" class="tasks-container">
+					<div class="loading-spinner">Загрузка задач...</div>
+				</div>
+			</div>
 		</div>
 
 		<!-- Панель 3: Актёры озвучки -->

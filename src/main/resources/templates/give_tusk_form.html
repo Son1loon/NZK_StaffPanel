@@ -5,17 +5,18 @@
 	<meta charset="UTF-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1.0">
 	<title>NZK | Выдать таск билдеру</title>
-	<link
-		href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600;14..32,700&display=swap"
-		rel="stylesheet">
+	<meta name="_csrf" th:content="${_csrf.token}"/>
+	<meta name="_csrf_header" th:content="${_csrf.headerName}"/>
+	<link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600;14..32,700&display=swap" rel="stylesheet">
 	<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
-	<link rel="stylesheet" href="../static/styles/give_tusk_form.css">
-
+	<link rel="stylesheet" th:href="@{/styles/give_tusk_form.css}">
+	<link rel="stylesheet" th:href="@{/styles/blocks/header.css}">
+	<link rel="stylesheet" th:href="@{/styles/blocks/footer.css}">
 </head>
 
 <body>
-
-	<header th:insert="blocks/header :: header"></header>
+<div class="hub-wrapper">
+	<header th:replace="~{blocks/header :: header}"></header>
 
 	<div class="page-wrapper">
 		<div class="task-card">
@@ -30,40 +31,30 @@
 			</div>
 			<div class="card-body">
 				<form id="builderTaskForm">
-					<!-- выбор билдера -->
 					<div class="form-group">
 						<label><i class="fas fa-user-helmet-safety"></i> Строитель</label>
 						<select id="builderName" required>
-							<option value="" disabled selected>— Выберите билдера —</option>
-							<option value="Stark_Builder">🧱 Stark_Builder</option>
-							<option value="NatureCraft">🌿 NatureCraft</option>
-							<option value="IronHammer">⚒️ IronHammer</option>
-							<option value="Aleksey_Build">🏗️ Aleksey_Build</option>
-							<option value="MinerPro">⛏️ MinerPro</option>
+							<option value="" disabled selected>— Загрузка списка строителей... —</option>
 						</select>
 					</div>
 
-					<!-- название задачи -->
 					<div class="form-group">
 						<label><i class="fas fa-trowel"></i> Название таска</label>
 						<input type="text" id="taskName" placeholder="например: Возвести кузницу" required>
 					</div>
 
-					<!-- описание краткое -->
 					<div class="form-group">
 						<label><i class="fas fa-pen-ruler"></i> Краткое описание / требования</label>
-						<textarea id="taskDescription"
-							placeholder="Размер, стиль, координаты, важные детали..."></textarea>
+						<textarea id="taskDescription" placeholder="Размер, стиль, координаты, важные детали..."></textarea>
 					</div>
 
-					<!-- два поля: приоритет + дедлайн -->
 					<div class="row-2cols">
 						<div class="form-group">
 							<label><i class="fas fa-chart-simple"></i> Приоритет</label>
 							<select id="priority" class="priority-select">
-								<option value="high">🔥 Высокий</option>
-								<option value="medium" selected>⭐ Средний</option>
-								<option value="low">❄️ Низкий</option>
+								<option value="HIGH">🔥 Высокий</option>
+								<option value="MEDIUM" selected>⭐ Средний</option>
+								<option value="LOW">❄️ Низкий</option>
 							</select>
 						</div>
 						<div class="form-group">
@@ -72,27 +63,25 @@
 						</div>
 					</div>
 
-					<!-- референсы (одна строка) -->
 					<div class="form-group">
 						<label><i class="fas fa-link"></i> Референс / ссылка (опционально)</label>
 						<input type="text" id="reference" placeholder="https:// или краткий комментарий">
 					</div>
 
-					<!-- кнопки -->
 					<div class="form-actions">
-						<button type="button" class="btn-outline" id="clearBtn"><i class="fas fa-undo-alt"></i>
-							Очистить</button>
+						<button type="button" class="btn-outline" id="clearBtn"><i class="fas fa-undo-alt"></i> Очистить</button>
 						<button type="submit" class="btn-primary"><i class="fas fa-paper-plane"></i> Выдать</button>
 					</div>
 				</form>
+				<div id="formMessage" class="form-message" style="display: none;"></div>
 			</div>
 		</div>
 	</div>
 
-	<div th:insert="blocks/footer :: footer"></div>
+	<div th:replace="~{blocks/footer :: footer}"></div>
+</div>
 
-	<script src="../static/scripts/give_tusk_form.js"></script>
-
+<script th:src="@{/scripts/give_tusk_form.js}"></script>
 </body>
 
 </html>

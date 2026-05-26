@@ -16,6 +16,9 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
 import org.springframework.web.bind.annotation.*;
+import com.staffpanel.NZKStuffPanel.models.Task;
+import com.staffpanel.NZKStuffPanel.repository.TaskRepository;
+import java.time.LocalDateTime;
 
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -50,13 +53,26 @@ public class ApiController {
         return stats;
     }
 
-    // ========== ЗАДАЧИ ==========
-    @GetMapping("/tasks")
-    public Map<String, Object> getTasks() {
-        Map<String, Object> tasks = new HashMap<>();
-        tasks.put("inProgress", new ArrayList<>());
-        tasks.put("completed", new ArrayList<>());
-        return tasks;
+    // Получить задачи текущего пользователя (для профиля)
+    @GetMapping("/user/tasks")
+    public ResponseEntity<?> getUserTasks(Authentication auth) {
+        String username = auth.getName();
+        List<Task> tasks = taskRepository.findByAssignee(username);
+        List<Map<String, Object>> result = new ArrayList<>();
+
+        for (Task task : tasks) {
+            Map<String, Object> taskMap = new HashMap<>();
+            taskMap.put("id", task.getId());
+            taskMap.put("title", task.getTitle());
+            taskMap.put("description", task.getDescription());
+            taskMap.put("status", task.getStatus());
+            taskMap.put("priority", task.getPriority());
+            taskMap.put("deadline", task.getDeadline());
+            taskMap.put("createdAt", task.getCreatedAt());
+            result.add(taskMap);
+        }
+
+        return ResponseEntity.ok(result);
     }
 
     // ========== АУДИО ==========
@@ -433,12 +449,6 @@ public class ApiController {
     }
 
     // ========== ПОЛЬЗОВАТЕЛЬСКИЕ ДАННЫЕ ДЛЯ ПРОФИЛЯ ==========
-    @GetMapping("/user/tasks")
-    public ResponseEntity<?> getUserTasks(Authentication auth) {
-        String username = auth.getName();
-        // TODO: Реализовать получение задач пользователя из БД
-        return ResponseEntity.ok(new ArrayList<>());
-    }
 
     @GetMapping("/user/builds")
     public ResponseEntity<?> getUserBuilds(Authentication auth) {
@@ -544,5 +554,162 @@ public class ApiController {
         return ResponseEntity.ok(response);
     }
 
+    // ========== ЗАДАЧИ ==========
+    @Autowired
+    private TaskRepository taskRepository;
+
+    @GetMapping("/tasks")
+    public ResponseEntity<?> getTasks(@RequestParam(required = false) String filter) {
+        List<Task> allTasks = taskRepository.findAll();
+        List<Map<String, Object>> inProgress = new ArrayList<>();
+        List<Map<String, Object>> completed = new ArrayList<>();
+
+        for (Task task : allTasks) {
+            Map<String, Object> taskMap = new HashMap<>();
+            taskMap.put("id", task.getId());
+            taskMap.put("title", task.getTitle());
+            taskMap.put("assignee", task.getAssignee());
+            taskMap.put("createdBy", task.getCreatedBy()); // добавляем автора
+            taskMap.put("priority", task.getPriority());
+            taskMap.put("deadline", task.getDeadline());
+            taskMap.put("description", task.getDescription());
+
+            // Фильтрация по исполнителю
+            if (filter != null && !filter.isEmpty() && !filter.equals("all")) {
+                if (!task.getAssignee().equals(filter)) {
+                    continue;
+                }
+            }
+
+            if ("COMPLETED".equals(task.getStatus())) {
+                taskMap.put("completedAt", task.getCompletedAt());
+                completed.add(taskMap);
+            } else {
+                inProgress.add(taskMap);
+            }
+        }
+
+        Map<String, Object> response = new HashMap<>();
+        response.put("inProgress", inProgress);
+        response.put("completed", completed);
+        return ResponseEntity.ok(response);
+    }
+
+    // Создание задачи (админ)
+    @PostMapping("/admin/create-task")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<?> createTask(@RequestBody Map<String, String> taskData, Authentication auth) {
+        String title = taskData.get("title");
+        String description = taskData.get("description");
+        String assignee = taskData.get("assignee");
+        String priority = taskData.get("priority");
+        String deadline = taskData.get("deadline");
+        String reference = taskData.get("reference");
+        String currentUser = auth.getName();
+
+        Map<String, String> response = new HashMap<>();
+
+        if (title == null || title.trim().isEmpty()) {
+            response.put("error", "Название задачи не может быть пустым");
+            return ResponseEntity.badRequest().body(response);
+        }
+
+        if (assignee == null || assignee.trim().isEmpty()) {
+            response.put("error", "Выберите исполнителя");
+            return ResponseEntity.badRequest().body(response);
+        }
+
+        Task task = new Task();
+        task.setTitle(title);
+        task.setDescription(description != null ? description : "");
+        task.setAssignee(assignee);
+        task.setCreatedBy(currentUser); // сохраняем кто выдал
+        task.setPriority(priority != null ? priority.toUpperCase() : "MEDIUM");
+        task.setDeadline(deadline);
+        task.setReference(reference);
+        task.setStatus("PENDING");
+
+        taskRepository.save(task);
+
+        response.put("success", "Задача успешно создана!");
+        return ResponseEntity.ok(response);
+    }
+
+    // Завершение задачи
+    @PostMapping("/tasks/{id}/complete")
+    public ResponseEntity<?> completeTask(@PathVariable Long id, Authentication auth) {
+        Optional<Task> taskOpt = taskRepository.findById(id);
+
+        if (taskOpt.isEmpty()) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Задача не найдена"));
+        }
+
+        Task task = taskOpt.get();
+
+        if (!task.getAssignee().equals(auth.getName()) && !auth.getAuthorities().stream()
+                .anyMatch(granted -> granted.getAuthority().equals("ROLE_ADMIN"))) {
+            return ResponseEntity.status(403).body(Map.of("error", "Вы можете завершать только свои задачи"));
+        }
+
+        task.setStatus("COMPLETED");
+        task.setCompletedAt(LocalDateTime.now());
+        taskRepository.save(task);
+
+        return ResponseEntity.ok(Map.of("success", true));
+    }
+
+    // Удаление задачи (только для админов)
+    @DeleteMapping("/admin/tasks/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<?> deleteTask(@PathVariable Long id) {
+        Optional<Task> taskOpt = taskRepository.findById(id);
+
+        if (taskOpt.isEmpty()) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Задача не найдена"));
+        }
+
+        taskRepository.deleteById(id);
+        return ResponseEntity.ok(Map.of("success", "Задача удалена"));
+    }
+
+    // Получить список исполнителей для фильтра
+    @GetMapping("/tasks/assignees")
+    public ResponseEntity<?> getTaskAssignees() {
+        List<Task> tasks = taskRepository.findAll();
+        Set<String> assignees = new TreeSet<>();
+
+        for (Task task : tasks) {
+            assignees.add(task.getAssignee());
+        }
+
+        return ResponseEntity.ok(assignees);
+    }
+
+    // Получить всех строителей (пользователей с ролью BUILDER)
+    @GetMapping("/builders")
+    public ResponseEntity<?> getBuilders() {
+        List<User> allUsers = userRepository.findAll();
+        List<Map<String, Object>> builders = new ArrayList<>();
+
+        for (User user : allUsers) {
+            boolean isBuilder = user.getRoles().stream()
+                    .anyMatch(role -> role.name().equals("ROLE_BUILDER"));
+
+            if (isBuilder) {
+                Map<String, Object> builderInfo = new HashMap<>();
+                builderInfo.put("id", user.getId());
+                builderInfo.put("username", user.getUsername());
+                builderInfo.put("avatar", user.getAvatar());
+
+                // Считаем активные задачи
+                long activeTasks = taskRepository.countByAssigneeAndStatus(user.getUsername(), "PENDING");
+                builderInfo.put("activeTasksCount", activeTasks);
+
+                builders.add(builderInfo);
+            }
+        }
+
+        return ResponseEntity.ok(builders);
+    }
 
 }

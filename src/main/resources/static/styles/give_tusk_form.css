@@ -1,5 +1,4 @@
-/* give_tusk.css — стили для страницы выдачи тасков с хедером из хаба */
-
+/* ========== ФОРМА ВЫДАЧИ ТАСКА ========== */
 * {
     margin: 0;
     padding: 0;
@@ -10,13 +9,14 @@ body {
     font-family: 'Inter', sans-serif;
     background: linear-gradient(135deg, #0a0c15 0%, #0f111f 100%);
     color: #eef2ff;
-    line-height: 1.5;
-    min-height: 100vh;
-    display: flex;
-    flex-direction: column;
 }
 
-/* ========== ОСНОВНОЙ КОНТЕНТ (адаптация под форму) ========== */
+.hub-wrapper {
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+}
+
 .page-wrapper {
     flex: 1;
     display: flex;
@@ -25,214 +25,169 @@ body {
     padding: 2rem;
 }
 
-/* компактная карточка формы */
 .task-card {
-    max-width: 520px;
+    max-width: 700px;
     width: 100%;
-    background: rgba(18, 22, 40, 0.95);
-    backdrop-filter: blur(8px);
+    background: #111521;
     border-radius: 1.5rem;
-    border: 1px solid rgba(90, 110, 190, 0.35);
-    box-shadow: 0 20px 35px rgba(0, 0, 0, 0.4);
+    border: 1px solid #2a2f48;
     overflow: hidden;
-    transition: transform 0.2s;
 }
 
-.task-card:hover {
-    transform: translateY(-3px);
-}
-
-/* заголовок карточки */
 .card-header {
-    background: linear-gradient(100deg, #121834, #0a0e20);
-    padding: 1rem 1.5rem;
-    border-bottom: 1px solid #2a3155;
+    background: linear-gradient(135deg, #1a1f35, #111521);
+    padding: 1.5rem;
     display: flex;
-    align-items: center;
     justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid #2a2f48;
     flex-wrap: wrap;
-    gap: 0.5rem;
+    gap: 1rem;
 }
 
 .header-title {
     display: flex;
     align-items: center;
-    gap: 0.6rem;
+    gap: 0.8rem;
 }
 
 .header-title i {
-    font-size: 1.4rem;
-    color: #ffaa44;
+    font-size: 1.5rem;
+    color: #ffda88;
 }
 
 .header-title h2 {
-    font-size: 1.2rem;
-    font-weight: 700;
-    color: #f0f3ff;
+    font-size: 1.3rem;
+    color: white;
 }
 
 .builder-badge {
-    background: #2a3155;
-    padding: 0.25rem 0.8rem;
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    padding: 0.4rem 1rem;
     border-radius: 2rem;
-    font-size: 0.7rem;
-    font-weight: 600;
-    color: #ffcd81;
+    font-size: 0.8rem;
 }
 
-/* тело формы */
 .card-body {
     padding: 1.5rem;
 }
 
 .form-group {
-    margin-bottom: 1rem;
+    margin-bottom: 1.2rem;
 }
 
 .form-group label {
-    display: flex;
-    align-items: center;
-    gap: 0.4rem;
-    font-size: 0.75rem;
+    display: block;
+    margin-bottom: 0.5rem;
     font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.3px;
-    color: #9aabdf;
-    margin-bottom: 0.3rem;
+    color: #a0a8c0;
+    font-size: 0.85rem;
 }
 
 .form-group label i {
-    font-size: 0.7rem;
-    color: #ffbc6e;
+    margin-right: 0.4rem;
+    color: #667eea;
 }
 
-select,
-input,
-textarea {
+.form-group input,
+.form-group select,
+.form-group textarea {
     width: 100%;
-    background: #0c0f1c;
-    border: 1px solid #2e3457;
-    border-radius: 0.9rem;
-    padding: 0.6rem 0.9rem;
-    font-size: 0.85rem;
-    color: #edf2ff;
-    font-family: 'Inter', sans-serif;
+    padding: 0.8rem 1rem;
+    background: #1a1f35;
+    border: 1px solid #2f365b;
+    border-radius: 0.8rem;
+    color: white;
+    font-size: 0.9rem;
     transition: all 0.2s;
+}
+
+.form-group input:focus,
+.form-group select:focus,
+.form-group textarea:focus {
     outline: none;
+    border-color: #667eea;
+    box-shadow: 0 0 0 2px rgba(102, 126, 234, 0.2);
 }
 
-select:focus,
-input:focus,
-textarea:focus {
-    border-color: #6d85ff;
-    box-shadow: 0 0 0 2px rgba(109, 133, 255, 0.2);
-}
-
-textarea {
+.form-group textarea {
     resize: vertical;
-    min-height: 70px;
+    min-height: 100px;
 }
 
-/* двойной ряд */
 .row-2cols {
     display: grid;
     grid-template-columns: 1fr 1fr;
-    gap: 0.8rem;
+    gap: 1rem;
 }
 
-/* кнопки */
+.priority-select {
+    cursor: pointer;
+}
+
+.priority-select option[value="HIGH"] { background: #ef4444; color: white; }
+.priority-select option[value="MEDIUM"] { background: #f59e0b; color: #1a1a2e; }
+.priority-select option[value="LOW"] { background: #22c55e; color: #1a1a2e; }
+
 .form-actions {
     display: flex;
-    justify-content: flex-end;
-    gap: 0.8rem;
+    gap: 1rem;
     margin-top: 1.5rem;
 }
 
 .btn-outline {
+    flex: 1;
+    padding: 0.8rem;
     background: transparent;
-    border: 1px solid #4a5585;
-    padding: 0.5rem 1.2rem;
-    border-radius: 2rem;
-    font-size: 0.8rem;
-    font-weight: 500;
-    color: #cbd5ff;
+    border: 1px solid #2f365b;
+    border-radius: 0.8rem;
+    color: #a0a8c0;
+    font-weight: 600;
     cursor: pointer;
-    transition: 0.2s;
+    transition: all 0.2s;
 }
 
 .btn-outline:hover {
-    background: #252d50;
-    border-color: #7a8eff;
+    background: rgba(102, 126, 234, 0.1);
+    border-color: #667eea;
+    color: white;
 }
 
 .btn-primary {
-    background: linear-gradient(95deg, #3c4fe0, #6730e6);
+    flex: 2;
+    padding: 0.8rem;
+    background: linear-gradient(135deg, #22c55e, #16a34a);
     border: none;
-    padding: 0.5rem 1.4rem;
-    border-radius: 2rem;
-    font-size: 0.8rem;
-    font-weight: 600;
+    border-radius: 0.8rem;
     color: white;
+    font-weight: 600;
     cursor: pointer;
-    display: flex;
-    align-items: center;
-    gap: 0.4rem;
-    transition: 0.15s;
+    transition: all 0.2s;
 }
 
 .btn-primary:hover {
-    transform: scale(1.02);
-    box-shadow: 0 4px 12px rgba(60, 79, 224, 0.4);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(34, 197, 94, 0.3);
 }
 
-/* сообщение об успехе */
-.toast-notify {
+.notification {
     position: fixed;
-    bottom: 90px;
+    bottom: 20px;
     right: 20px;
-    background: #1e293b;
-    backdrop-filter: blur(8px);
-    padding: 0.6rem 1.2rem;
-    border-radius: 2rem;
-    border-left: 3px solid #4ade80;
-    font-size: 0.8rem;
-    font-weight: 500;
-    color: #dcfce7;
-    z-index: 200;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-    transition: opacity 0.2s;
+    padding: 12px 20px;
+    border-radius: 10px;
+    z-index: 9999;
+    animation: slideIn 0.3s ease;
 }
 
-/* ========== АДАПТИВ ========== */
-@media (max-width: 900px) {
-    .header-container {
-        flex-direction: column;
-        align-items: stretch;
-    }
-    .hub-nav {
-        justify-content: center;
-        flex-wrap: wrap;
-    }
-    .user-shortcut {
-        justify-content: center;
-    }
+@keyframes slideIn {
+    from { transform: translateX(100%); opacity: 0; }
+    to { transform: translateX(0); opacity: 1; }
 }
 
-@media (max-width: 550px) {
-    .row-2cols {
-        grid-template-columns: 1fr;
-        gap: 0.8rem;
-    }
-    .page-wrapper {
-        padding: 1rem;
-    }
-    .nav-tab span {
-        display: none;
-    }
-    .nav-tab i {
-        font-size: 1.3rem;
-    }
-    .nav-tab {
-        padding: 0.6rem 0.9rem;
-    }
+@media (max-width: 600px) {
+    .page-wrapper { padding: 1rem; }
+    .card-header { flex-direction: column; text-align: center; }
+    .row-2cols { grid-template-columns: 1fr; }
+    .form-actions { flex-direction: column; }
 }
