@@ -719,12 +719,24 @@ async function checkAdminRights() {
             if (currentUser) {
                 const isAdmin = currentUser.roles.includes('ADMIN');
                 window.userData.isAdmin = isAdmin;
+
                 const userRoleSpan = document.getElementById('userRoleSpan');
                 if (userRoleSpan) userRoleSpan.textContent = isAdmin ? 'Админ' : 'Сотрудник';
+
                 const adminButtons = document.querySelectorAll('.admin-only');
                 adminButtons.forEach(btn => btn.style.display = isAdmin ? 'inline-flex' : 'none');
+
                 const adminWelcomeDiv = document.getElementById('adminWelcomeMessage');
                 if (adminWelcomeDiv) adminWelcomeDiv.style.display = isAdmin ? 'block' : 'none';
+
+                // ========== ДОБАВЬ ЭТО ==========
+                // Скрываем/показываем кнопку "Выдать таск"
+                const addTaskBtn = document.querySelector('.add-task-btn');
+                if (addTaskBtn) {
+                    addTaskBtn.style.display = isAdmin ? 'inline-flex' : 'none';
+                }
+                // ========== КОНЕЦ ДОБАВЛЕНИЯ ==========
+
                 return isAdmin;
             }
         }
