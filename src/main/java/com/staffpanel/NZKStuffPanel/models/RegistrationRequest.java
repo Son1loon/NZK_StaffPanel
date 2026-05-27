@@ -1,7 +1,6 @@
 package com.staffpanel.NZKStuffPanel.models;
 
 import jakarta.persistence.*;
-
 import java.time.LocalDateTime;
 
 @Entity
@@ -17,11 +16,17 @@ public class RegistrationRequest {
     @Column(nullable = false)
     private String password;
 
-    private LocalDateTime requestedAt = LocalDateTime.now();
+    @Column(name = "requested_at")
+    private LocalDateTime requestedAt;
 
+    @Column(nullable = false)
     private String status = "PENDING";
 
-    // Getters and Setters
+    public RegistrationRequest() {
+        this.requestedAt = LocalDateTime.now();
+    }
+
+    // Геттеры и сеттеры
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
 

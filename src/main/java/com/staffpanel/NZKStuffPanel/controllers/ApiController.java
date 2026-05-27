@@ -323,14 +323,22 @@ public class ApiController {
             return ResponseEntity.badRequest().body(response);
         }
 
-        RegistrationRequest request = new RegistrationRequest();
-        request.setUsername(username);
-        request.setPassword(passwordEncoder.encode(password));
-        request.setStatus("PENDING");
-        requestRepository.save(request);
+        try {
+            RegistrationRequest request = new RegistrationRequest();
+            request.setUsername(username);
+            request.setPassword(passwordEncoder.encode(password));
+            request.setStatus("PENDING");
+            request.setRequestedAt(LocalDateTime.now()); // Явно устанавливаем дату
 
-        response.put("success", "Заявка отправлена на рассмотрение");
-        return ResponseEntity.ok(response);
+            requestRepository.save(request);
+
+            response.put("success", "Заявка отправлена на рассмотрение");
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            e.printStackTrace();
+            response.put("error", "Ошибка сервера: " + e.getMessage());
+            return ResponseEntity.status(500).body(response);
+        }
     }
 
     @GetMapping("/admin/registration-requests")
