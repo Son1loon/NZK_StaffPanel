@@ -474,11 +474,9 @@
 <script>
 	// ========== ПЕРЕКЛЮЧЕНИЕ ВКЛАДОК ==========
     function switchTab(tabName) {
-        // Получаем все кнопки вкладок и панели
         const tabs = document.querySelectorAll('.auth-tab');
         const panes = document.querySelectorAll('.auth-pane');
 
-        // Переключаем активный класс у кнопок
         tabs.forEach(tab => {
             if (tab.getAttribute('data-tab') === tabName) {
                 tab.classList.add('active');
@@ -487,7 +485,6 @@
             }
         });
 
-        // Переключаем активный класс у панелей
         panes.forEach(pane => {
             if (pane.id === `${tabName}-pane`) {
                 pane.classList.add('active');
@@ -496,19 +493,14 @@
             }
         });
 
-        // Очищаем сообщения
         clearMessages();
     }
 
     function clearMessages() {
         const loginError = document.getElementById('loginErrorMessage');
-        if (loginError) {
-            loginError.style.display = 'none';
-        }
+        if (loginError) loginError.style.display = 'none';
         const regMsg = document.getElementById('registerMessage');
-        if (regMsg) {
-            regMsg.style.display = 'none';
-        }
+        if (regMsg) regMsg.style.display = 'none';
     }
 
     function showMessage(element, message, isError = true) {
@@ -525,7 +517,7 @@
         }
         setTimeout(() => {
             element.style.display = 'none';
-        }, 3000);
+        }, 5000);
     }
 
     // ========== CSRF ТОКЕН ==========
@@ -572,30 +564,37 @@
             registerBtn.innerHTML = '<span class="loader"></span><span> Отправка...</span>';
 
             try {
-                const csrf = getCsrfToken();
-                const headers = { 'Content-Type': 'application/json' };
-                if (csrf) headers[csrf.header] = csrf.token;
-
+                // Используем относительный путь
                 const response = await fetch('/api/register-request', {
                     method: 'POST',
-                    headers: headers,
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
                     body: JSON.stringify({ username, password })
                 });
-                const data = await response.json();
 
-                if (data.success) {
+                let data;
+                const contentType = response.headers.get('content-type');
+                if (contentType && contentType.includes('application/json')) {
+                    data = await response.json();
+                } else {
+                    const text = await response.text();
+                    console.error('Сервер вернул не JSON:', text);
+                    throw new Error('Ошибка сервера');
+                }
+
+                if (response.ok && data.success) {
                     showMessage(msgDiv, '✅ Заявка отправлена! Администратор рассмотрит её.', false);
                     registerForm.reset();
                     setTimeout(() => {
                         switchTab('login');
-                        showMessage(msgDiv, '✨ Теперь войдите после подтверждения админом', false);
                     }, 2000);
                 } else {
                     showMessage(msgDiv, '❌ ' + (data.error || 'Ошибка отправки заявки'), true);
                 }
             } catch (error) {
                 console.error('Ошибка:', error);
-                showMessage(msgDiv, '❌ Ошибка соединения с сервером', true);
+                showMessage(msgDiv, '❌ ' + error.message, true);
             } finally {
                 registerBtn.disabled = false;
                 registerBtn.innerHTML = originalText;
@@ -627,11 +626,15 @@
 
     // Загрузка сохранённого пользователя
     if (localStorage.getItem('rememberedUser')) {
-        const remembered = JSON.parse(localStorage.getItem('rememberedUser'));
-        const usernameInput = document.getElementById('loginUsername');
-        const rememberCheckbox = document.getElementById('rememberMe');
-        if (usernameInput) usernameInput.value = remembered.username;
-        if (rememberCheckbox) rememberCheckbox.checked = true;
+        try {
+            const remembered = JSON.parse(localStorage.getItem('rememberedUser'));
+            const usernameInput = document.getElementById('loginUsername');
+            const rememberCheckbox = document.getElementById('rememberMe');
+            if (usernameInput) usernameInput.value = remembered.username;
+            if (rememberCheckbox) rememberCheckbox.checked = true;
+        } catch(e) {
+            localStorage.removeItem('rememberedUser');
+        }
     }
 </script>
 </body>
