@@ -56,9 +56,8 @@ public class SecurityConfig {
                         .clearAuthentication(true)
                         .permitAll()
                 )
-                // Отключаем CSRF для публичных API
                 .csrf(csrf -> csrf
-                        .ignoringRequestMatchers("/api/register-request", "/api/heartbeat")
+                        .ignoringRequestMatchers("/api/**", "/api/register-request", "/api/heartbeat")
                 )
                 .userDetailsService(userDetailsService);
 
