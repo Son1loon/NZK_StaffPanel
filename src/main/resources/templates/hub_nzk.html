@@ -49,13 +49,6 @@
 					</div>
 				</div>
 				<div class="stat-card">
-					<div class="stat-icon"><i class="fas fa-waveform"></i></div>
-					<div class="stat-info">
-						<span class="stat-value" id="audioCount">0</span>
-						<span class="stat-label">Аудио файлов</span>
-					</div>
-				</div>
-				<div class="stat-card">
 					<div class="stat-icon"><i class="fas fa-users"></i></div>
 					<div class="stat-info">
 						<span class="stat-value" id="usersCount">0</span>
@@ -84,7 +77,7 @@
 
 			<!-- Список строителей -->
 			<div class="builders-list-section">
-				<h3><i class="fas fa-users"></i> Наши строители</h3>
+				<h3><i class="fas fa-users"></i> Строители</h3>
 				<div id="buildersListContainer" class="builders-grid">
 					<div class="loading-spinner">Загрузка списка строителей...</div>
 				</div>
@@ -102,13 +95,128 @@
 			</div>
 		</div>
 
-		<!-- Панель 3: Актёры озвучки -->
+		<!-- Панель 3: Актёры озвучки и персонажи -->
 		<div class="tab-content" id="voice-actors-tab">
 			<div class="panel-header">
-				<h2><i class="fas fa-microphone-alt"></i> Звукоматериал & актёры</h2>
-				<button class="upload-audio-btn"><i class="fas fa-upload"></i> Загрузить аудио</button>
+				<h2><i class="fas fa-microphone-alt"></i> Актёры озвучки и персонажи</h2>
+				<button class="add-voice-actor-btn admin-only" id="addCharacterBtn" style="display: none;">
+					<i class="fas fa-user-plus"></i> Создать персонажа
+				</button>
 			</div>
-			<div id="audioContainer">...</div>
+
+			<div class="voice-actors-layout">
+
+				<!-- Левая колонка - список актёров -->
+				<div class="voice-actors-sidebar">
+					<!-- ДОБАВЬ ЭТУ ПЛАШКУ -->
+					<div class="all-characters-plate" onclick="showAllCharacters()">
+						<div class="all-characters-icon">
+							<i class="fas fa-mask"></i>
+						</div>
+						<div class="all-characters-info">
+							<div class="all-characters-title">Все персонажи</div>
+							<div class="all-characters-count" id="allCharactersCount">0 персонажей</div>
+						</div>
+						<i class="fas fa-chevron-right"></i>
+					</div>
+					<h3><i class="fas fa-users"></i> Актёры озвучки</h3>
+					<div id="voiceActorsList" class="voice-actors-list-container">
+						<div class="loading-spinner">Загрузка актёров...</div>
+					</div>
+
+				</div>
+
+				<!-- Правая колонка - персонажи -->
+				<div class="characters-content">
+					<div class="characters-header">
+						<h3><i class="fas fa-mask"></i> Персонажи</h3>
+						<button class="assign-character-btn admin-only" id="assignCharacterBtn" style="display: none;">
+							<i class="fas fa-user-plus"></i> Выдать персонажа
+						</button>
+					</div>
+					<div id="charactersList" class="characters-grid">
+						<div class="loading-spinner">Загрузка персонажей...</div>
+					</div>
+				</div>
+			</div>
+
+			<!-- Модальное окно для просмотра персонажа -->
+			<div id="characterModal" class="modal" style="display: none;">
+				<div class="modal-content">
+					<div class="modal-header">
+						<h3 id="modalCharacterName"></h3>
+						<button class="modal-close-btn" onclick="closeModal()">&times;</button>
+					</div>
+					<div class="modal-body">
+						<div class="character-info-modal">
+							<div class="character-info-row">
+								<i class="fas fa-align-left"></i>
+								<p id="modalCharacterDescription"></p>
+							</div>
+							<div class="character-info-row">
+								<i class="fas fa-user"></i>
+								<p><strong>Актёр:</strong> <span id="modalCharacterActor"></span></p>
+							</div>
+							<div id="adminCharacterActions" style="display: none; margin-top: 10px;">
+								<button class="btn-danger" id="unassignCharacterBtn" style="font-size: 0.8rem;">
+									<i class="fas fa-user-slash"></i> Забрать персонажа
+								</button>
+								<button class="btn-secondary" id="reassignCharacterBtn" style="font-size: 0.8rem;">
+									<i class="fas fa-exchange-alt"></i> Сменить актёра
+								</button>
+								<button class="btn-danger" id="deleteCharacterBtn" style="font-size: 0.8rem;">
+									<i class="fas fa-trash"></i> Удалить персонажа
+								</button>
+							</div>
+						</div>
+
+						<h4><i class="fas fa-headphones"></i> Озвучки персонажа</h4>
+						<div id="modalVoiceRecords" class="voice-records-list">
+							<div class="loading-spinner">Загрузка озвучек...</div>
+						</div>
+
+						<div id="addVoiceRecordForm" class="add-voice-form" style="display: none;">
+							<h5><i class="fas fa-microphone-alt"></i> Добавить озвучку</h5>
+							<input type="text" id="voiceTitle" placeholder="Название озвучки" class="form-input">
+							<textarea id="voiceDescription" placeholder="Описание (необязательно)" class="form-textarea"></textarea>
+							<div class="audio-upload-area">
+								<label for="voiceAudioFile" class="audio-upload-label">
+									<i class="fas fa-cloud-upload-alt"></i>
+									<span>Выбрать аудиофайл</span>
+								</label>
+								<input type="file" id="voiceAudioFile" accept="audio/*" style="display: none;">
+								<div id="audioFileName" class="audio-file-name" style="display: none;"></div>
+								<input type="hidden" id="voiceAudioUrl">
+								<p style="font-size: 0.7rem; color: #7c8bd6; margin-top: 5px;">Максимальный размер файла: 2 МБ</p>
+							</div>
+							<button id="saveVoiceRecordBtn" class="btn-primary" style="width: 100%;">
+								<i class="fas fa-save"></i> Сохранить озвучку
+							</button>
+						</div>
+					</div>
+				</div>
+			</div>
+
+			<!-- Модальное окно для смены актёра -->
+			<div id="reassignCharacterModal" class="modal" style="display: none;">
+				<div class="modal-content">
+					<div class="modal-header">
+						<h3><i class="fas fa-exchange-alt"></i> Сменить актёра</h3>
+						<button class="modal-close-btn" onclick="closeReassignModal()">&times;</button>
+					</div>
+					<div class="modal-body">
+						<div class="modal-form">
+							<select id="reassignActorSelect" class="form-input">
+								<option value="">-- Выберите актёра --</option>
+							</select>
+							<div class="modal-buttons">
+								<button class="btn-primary" onclick="confirmReassign()">Сохранить</button>
+								<button class="btn-secondary" onclick="closeReassignModal()">Отмена</button>
+							</div>
+						</div>
+					</div>
+				</div>
+			</div>
 		</div>
 
 		<!-- Панель 4: Идеи построек -->

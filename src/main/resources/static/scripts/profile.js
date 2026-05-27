@@ -130,7 +130,6 @@ async function loadUserRoles() {
                     'BUILDER': '🏗️ Строитель',
                     'SCREENWRITER': '✍️ Сценарист',
                     'VOICE_ACTOR': '🎙️ Актёр озвучки',
-                    'ANIMATOR': '🎬 Аниматор',
                     'USER': '👤 Участник'
                 };
                 const roleHtml = user.roles.map(role =>
@@ -150,7 +149,6 @@ function showRoleSections(roles) {
         'BUILDER': 'builderWorksContainer',
         'SCREENWRITER': 'screenwriterWorksContainer',
         'VOICE_ACTOR': 'voiceActorWorksContainer',
-        'ANIMATOR': 'animatorWorksContainer'
     };
     for (const sectionId of Object.values(sections)) {
         const section = document.getElementById(sectionId);
@@ -303,7 +301,48 @@ async function loadUserWorks() {
     await loadBuilderWorks();
     await loadScreenwriterWorks();
     await loadVoiceActorWorks();
+    await loadVoiceActorCharacters();
     await loadAnimatorWorks();
+}
+
+// Открытие персонажа из профиля (перенаправляет на хаб)
+function openCharacterFromProfile(characterId) {
+    window.location.href = `/hub#voice-actors`;
+    // Сохраняем ID персонажа в sessionStorage, чтобы открыть его модал
+    sessionStorage.setItem('openCharacterId', characterId);
+}
+
+// Загрузка персонажей актёра (для раздела "Мои работы")
+async function loadVoiceActorCharacters() {
+    const container = document.querySelector('#voiceActorWorksContainer .works-grid');
+    if (!container) return;
+
+    try {
+        const response = await fetch('/api/characters');
+        if (response.ok) {
+            let characters = await response.json();
+            // Фильтруем только персонажей текущего пользователя
+            characters = characters.filter(c => c.assignedTo === window.userData.username);
+
+            if (characters.length === 0) {
+                container.innerHTML = '<div class="empty-state">У вас нет персонажей для озвучки</div>';
+                return;
+            }
+
+            container.innerHTML = characters.map(character => `
+                <div class="work-card character-work-card" onclick="openCharacterFromProfile(${character.id})">
+                    <div class="work-thumbnail">
+                        ${character.imageUrl ? `<img src="${character.imageUrl}" style="width: 50px; height: 50px; border-radius: 50%; object-fit: cover;">` : `<i class="fas fa-mask"></i>`}
+                    </div>
+                    <div class="work-title">${escapeHtml(character.name)}</div>
+                    <div class="work-date">🎙️ ${character.voiceRecordsCount || 0} озвучек</div>
+                </div>
+            `).join('');
+        }
+    } catch (error) {
+        console.error('Ошибка загрузки персонажей:', error);
+        container.innerHTML = '<div class="error-message">Ошибка загрузки персонажей</div>';
+    }
 }
 
 async function loadBuilderWorks() {
@@ -497,4 +536,13 @@ document.addEventListener('DOMContentLoaded', async () => {
     initProfileTabs();
     initAvatarUpload();
     await loadProfileData();
+
+    // В конце DOMContentLoaded добавь:
+    const openCharacterId = sessionStorage.getItem('openCharacterId');
+    if (openCharacterId && window.location.pathname === '/hub') {
+        sessionStorage.removeItem('openCharacterId');
+        setTimeout(() => {
+            openCharacterModal(parseInt(openCharacterId));
+        }, 500);
+    }
 });

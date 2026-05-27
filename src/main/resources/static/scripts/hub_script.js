@@ -66,9 +66,6 @@ async function loadTabData(tabId) {
             await loadBuildersList();
             await loadTasks();
             break;
-        case 'voice-actors':
-            await loadAudioFiles();
-            break;
         case 'ideas':
             await loadIdeas();
             break;
@@ -80,6 +77,10 @@ async function loadTabData(tabId) {
             break;
         case 'registration-requests':
             await loadRegistrationRequests();
+            break;
+        case 'voice-actors':
+            await loadVoiceActors();
+            await loadCharacters();
             break;
     }
 }
@@ -99,17 +100,193 @@ function handleHashOnLoad() {
 // ========== СТАТИСТИКА ==========
 async function loadStats() {
     try {
-        const response = await fetch('/api/stats');
-        if (response.ok) {
-            const stats = await response.json();
-            const statValues = document.querySelectorAll('.stat-value');
-            if (statValues[0]) statValues[0].textContent = stats.activeTasks || 0;
-            if (statValues[1]) statValues[1].textContent = stats.buildIdeas || 0;
-            if (statValues[2]) statValues[2].textContent = stats.audioFiles || 0;
-            if (statValues[3]) statValues[3].textContent = stats.activeUsers || 0;
+        const tasksResponse = await fetch('/api/tasks');
+        let activeTasks = 0;
+        if (tasksResponse.ok) {
+            const tasks = await tasksResponse.json();
+            activeTasks = tasks.inProgress?.length || 0;
         }
+
+        const statsResponse = await fetch('/api/stats');
+        let buildIdeas = 0, activeUsers = 0;
+        if (statsResponse.ok) {
+            const stats = await statsResponse.json();
+            buildIdeas = stats.buildIdeas || 0;
+            activeUsers = stats.activeUsers || 0;
+        }
+
+        const statValues = document.querySelectorAll('.stat-value');
+        if (statValues[0]) statValues[0].textContent = activeTasks;
+        if (statValues[1]) statValues[1].textContent = buildIdeas;
+        if (statValues[2]) statValues[2].textContent = activeUsers; // теперь это 3-й элемент
     } catch (error) {
         console.error('Ошибка загрузки статистики:', error);
+    }
+}
+
+// Обновление счётчика всех персонажей
+async function updateAllCharactersCount() {
+    try {
+        const response = await fetch('/api/characters');
+        if (response.ok) {
+            const characters = await response.json();
+            const countSpan = document.getElementById('allCharactersCount');
+            if (countSpan) {
+                countSpan.textContent = `${characters.length} персонажей`;
+            }
+        }
+    } catch (error) {
+        console.error('Ошибка:', error);
+    }
+}
+// Показать всех персонажей (очищает фильтр)
+function showAllCharacters() {
+    currentSelectedActor = null;
+
+    // Убираем активный класс у всех актёров
+    document.querySelectorAll('.voice-actor-card').forEach(card => {
+        card.classList.remove('active');
+    });
+
+    // Загружаем всех персонажей
+    loadCharacters(null);
+}
+
+
+// Забрать персонажа у актёра
+async function unassignCharacter(characterId, characterName) {
+    if (!confirm(`Забрать персонажа "${characterName}" у актёра?`)) return;
+
+    const csrf = getCsrfToken();
+    const headers = {};
+    if (csrf) headers[csrf.header] = csrf.token;
+
+    try {
+        const response = await fetch(`/api/admin/characters/${characterId}/unassign`, {
+            method: 'DELETE',
+            headers: headers
+        });
+
+        if (response.ok) {
+            showNotification('✅ Персонаж отобран', 'success');
+            await loadCharacters(currentSelectedActor);
+            await loadVoiceActors();
+        } else {
+            const data = await response.json();
+            showNotification(`❌ ${data.error || 'Ошибка'}`, 'error');
+        }
+    } catch (error) {
+        console.error('Ошибка:', error);
+        showNotification('❌ Ошибка соединения', 'error');
+    }
+}
+
+// Загрузка аудиофайла на Cloudinary
+async function uploadAudioFile(file, characterId) {
+    const formData = new FormData();
+    formData.append('audio', file);
+
+    const csrf = getCsrfToken();
+    const headers = {};
+    if (csrf) headers[csrf.header] = csrf.token;
+
+    try {
+        const response = await fetch(`/api/characters/${characterId}/upload-audio`, {
+            method: 'POST',
+            headers: headers,
+            body: formData
+        });
+
+        if (response.ok) {
+            const data = await response.json();
+            return data.audioUrl;
+        } else {
+            const error = await response.json();
+            showNotification(`❌ ${error.error || 'Ошибка загрузки'}`, 'error');
+            return null;
+        }
+    } catch (error) {
+        console.error('Ошибка:', error);
+        showNotification('❌ Ошибка соединения', 'error');
+        return null;
+    }
+}
+
+// Инициализация загрузки аудио
+function initAudioUpload() {
+    const uploadBtn = document.getElementById('uploadAudioBtn');
+    const audioFile = document.getElementById('voiceAudioFile');
+    const audioFileName = document.getElementById('audioFileName');
+
+    if (uploadBtn && audioFile) {
+        uploadBtn.addEventListener('click', () => audioFile.click());
+
+        audioFile.addEventListener('change', async (e) => {
+            const file = e.target.files[0];
+            if (file && currentCharacterId) {
+                uploadBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Загрузка...';
+                uploadBtn.disabled = true;
+
+                const audioUrl = await uploadAudioFile(file, currentCharacterId);
+
+                if (audioUrl) {
+                    document.getElementById('voiceAudioUrl').value = audioUrl;
+                    audioFileName.textContent = `✅ ${file.name}`;
+                    audioFileName.style.display = 'block';
+                    showNotification('✅ Аудиофайл загружен', 'success');
+                }
+
+                uploadBtn.innerHTML = '<i class="fas fa-cloud-upload-alt"></i> Выбрать аудиофайл';
+                uploadBtn.disabled = false;
+                audioFile.value = '';
+            }
+        });
+    }
+}
+
+// Обновленный saveVoiceRecord
+async function saveVoiceRecord() {
+    const title = document.getElementById('voiceTitle').value.trim();
+    const description = document.getElementById('voiceDescription').value.trim();
+    const audioUrl = document.getElementById('voiceAudioUrl').value.trim();
+
+    if (!title) {
+        showNotification('❌ Введите название озвучки', 'error');
+        return;
+    }
+
+    if (!audioUrl) {
+        showNotification('❌ Загрузите аудиофайл', 'error');
+        return;
+    }
+
+    const csrf = getCsrfToken();
+    const headers = { 'Content-Type': 'application/json' };
+    if (csrf) headers[csrf.header] = csrf.token;
+
+    try {
+        const response = await fetch(`/api/characters/${currentCharacterId}/voice-record`, {
+            method: 'POST',
+            headers: headers,
+            body: JSON.stringify({ title, description, audioUrl })
+        });
+
+        const data = await response.json();
+
+        if (response.ok) {
+            showNotification('✅ Озвучка добавлена', 'success');
+            document.getElementById('voiceTitle').value = '';
+            document.getElementById('voiceDescription').value = '';
+            document.getElementById('voiceAudioUrl').value = '';
+            document.getElementById('audioFileName').style.display = 'none';
+            await loadCharacterVoiceRecords(currentCharacterId);
+            await loadCharacters(currentSelectedActor);
+        } else {
+            showNotification(`❌ ${data.error || 'Ошибка'}`, 'error');
+        }
+    } catch (error) {
+        console.error('Ошибка:', error);
+        showNotification('❌ Ошибка соединения', 'error');
     }
 }
 
@@ -134,7 +311,7 @@ async function loadBuildersList() {
                     <div class="builder-info">
                         <div class="builder-name">${escapeHtml(builder.username)}</div>
                         <div class="builder-stats">
-                            <span><i class="fas fa-tasks"></i> ${builder.activeTasksCount || 0} активных тасков</span>
+                            <span><i class="fas fa-tasks"></i> активных тасков ${builder.activeTasksCount || 0}</span>
                         </div>
                     </div>
                 </div>
@@ -599,10 +776,10 @@ async function loadTeamMembers() {
                 }
             }
             users = uniqueUsers;
-            const groupedUsers = { 'ADMIN': [], 'BUILDER': [], 'SCREENWRITER': [], 'VOICE_ACTOR': [], 'ANIMATOR': [], 'USER': [] };
-            const roleIcons = { 'ADMIN': '<i class="fas fa-crown"></i>', 'BUILDER': '<i class="fas fa-hard-hat"></i>', 'SCREENWRITER': '<i class="fas fa-feather-alt"></i>', 'VOICE_ACTOR': '<i class="fas fa-microphone-alt"></i>', 'ANIMATOR': '<i class="fas fa-film"></i>', 'USER': '<i class="fas fa-user"></i>' };
-            const roleColors = { 'ADMIN': 'admin', 'BUILDER': 'builder', 'SCREENWRITER': 'screenwriter', 'VOICE_ACTOR': 'voice-actor', 'ANIMATOR': 'animator', 'USER': 'user' };
-            const roleNames = { 'ADMIN': '👑 Администраторы', 'BUILDER': '🏗️ Строители', 'SCREENWRITER': '✍️ Сценаристы', 'VOICE_ACTOR': '🎙️ Актёры озвучки', 'ANIMATOR': '🎬 Аниматоры', 'USER': '👤 Участники' };
+            const groupedUsers = { 'ADMIN': [], 'BUILDER': [], 'SCREENWRITER': [], 'VOICE_ACTOR': [], 'USER': [] };
+            const roleIcons = { 'ADMIN': '<i class="fas fa-crown"></i>', 'BUILDER': '<i class="fas fa-hard-hat"></i>', 'SCREENWRITER': '<i class="fas fa-feather-alt"></i>', 'VOICE_ACTOR': '<i class="fas fa-microphone-alt"></i>', 'USER': '<i class="fas fa-user"></i>' };
+            const roleColors = { 'ADMIN': 'admin', 'BUILDER': 'builder', 'SCREENWRITER': 'screenwriter', 'VOICE_ACTOR': 'voice-actor', 'USER': 'user' };
+            const roleNames = { 'ADMIN': '👑 Администраторы', 'BUILDER': '🏗️ Строители', 'SCREENWRITER': '✍️ Сценаристы', 'VOICE_ACTOR': '🎙️ Актёры озвучки', 'USER': '👤 Участники' };
             users.forEach(user => {
                 if (user.roles && user.roles.length > 0) {
                     if (user.roles.includes('ADMIN')) {
@@ -655,7 +832,6 @@ function getUserIcon(roles) {
     if (roles.includes('BUILDER')) return 'fa-hard-hat';
     if (roles.includes('SCREENWRITER')) return 'fa-feather-alt';
     if (roles.includes('VOICE_ACTOR')) return 'fa-microphone-alt';
-    if (roles.includes('ANIMATOR')) return 'fa-film';
     return 'fa-user';
 }
 
@@ -820,7 +996,7 @@ async function loadUsersManagement() {
             users.forEach(user => {
                 const isCurrentUser = user.username === currentUser;
                 const currentRoles = user.roles || [];
-                html += `<tr><td><div class="user-cell"><div class="user-avatar-small"><i class="fas ${getUserIcon(currentRoles)}"></i></div><span>${escapeHtml(user.username)}</span>${isCurrentUser ? '<span class="current-user-badge">(Вы)</span>' : ''}</div></td><td><div class="roles-badges">${currentRoles.map(role => `<span class="role-badge role-${role.toLowerCase()}">${getRoleName(role)}<button class="remove-role-btn" onclick="removeRoleFromUser(${user.id}, '${role}')">✖</button></span>`).join('')}${currentRoles.length === 0 ? '<span class="no-roles">Нет ролей</span>' : ''}</div></td><td><div class="role-selector"><select class="role-select" id="select-${user.id}"><option value="">-- Выбрать роль --</option><option value="ADMIN">👑 Администратор</option><option value="BUILDER">🏗️ Строитель</option><option value="SCREENWRITER">✍️ Сценарист</option><option value="VOICE_ACTOR">🎙️ Актёр озвучки</option><option value="ANIMATOR">🎬 Аниматор</option></select><button class="add-role-btn" data-user-id="${user.id}"><i class="fas fa-plus"></i></button></div></td><td><div class="role-selector"><select class="role-select-remove" id="remove-select-${user.id}"><option value="">-- Выбрать роль --</option>${currentRoles.map(role => `<option value="${role}">${getRoleName(role)}</option>`).join('')}</select><button class="remove-role-btn-table" data-user-id="${user.id}"><i class="fas fa-minus"></i></button></div></td><td>${!isCurrentUser ? `<button class="delete-user-table-btn" onclick="deleteUser(${user.id}, '${escapeHtml(user.username)}')"><i class="fas fa-trash"></i> Удалить</button>` : '<span class="self-hint">Вы не можете удалить себя</span>'}</td></tr>`;
+                html += `<tr><td><div class="user-cell"><div class="user-avatar-small"><i class="fas ${getUserIcon(currentRoles)}"></i></div><span>${escapeHtml(user.username)}</span>${isCurrentUser ? '<span class="current-user-badge">(Вы)</span>' : ''}</div></td><td><div class="roles-badges">${currentRoles.map(role => `<span class="role-badge role-${role.toLowerCase()}">${getRoleName(role)}<button class="remove-role-btn" onclick="removeRoleFromUser(${user.id}, '${role}')">✖</button></span>`).join('')}${currentRoles.length === 0 ? '<span class="no-roles">Нет ролей</span>' : ''}</div></td><td><div class="role-selector"><select class="role-select" id="select-${user.id}"><option value="">-- Выбрать роль --</option><option value="ADMIN">👑 Администратор</option><option value="BUILDER">🏗️ Строитель</option><option value="SCREENWRITER">✍️ Сценарист</option><option value="VOICE_ACTOR">🎙️ Актёр озвучки</option></select><button class="add-role-btn" data-user-id="${user.id}"><i class="fas fa-plus"></i></button></div></td><td><div class="role-selector"><select class="role-select-remove" id="remove-select-${user.id}"><option value="">-- Выбрать роль --</option>${currentRoles.map(role => `<option value="${role}">${getRoleName(role)}</option>`).join('')}</select><button class="remove-role-btn-table" data-user-id="${user.id}"><i class="fas fa-minus"></i></button></div></td><td>${!isCurrentUser ? `<button class="delete-user-table-btn" onclick="deleteUser(${user.id}, '${escapeHtml(user.username)}')"><i class="fas fa-trash"></i> Удалить</button>` : '<span class="self-hint">Вы не можете удалить себя</span>'}</td></tr>`;
             });
             html += `</tbody></table></div>`;
             container.innerHTML = html;
@@ -854,7 +1030,7 @@ async function loadUsersManagement() {
 }
 
 function getRoleName(role) {
-    const roles = { 'ADMIN': 'Администратор', 'BUILDER': 'Строитель', 'SCREENWRITER': 'Сценарист', 'VOICE_ACTOR': 'Актёр озвучки', 'ANIMATOR': 'Аниматор', 'USER': 'Участник' };
+    const roles = { 'ADMIN': 'Администратор', 'BUILDER': 'Строитель', 'SCREENWRITER': 'Сценарист', 'VOICE_ACTOR': 'Актёр озвучки', 'USER': 'Участник' };
     return roles[role] || role;
 }
 
@@ -1082,9 +1258,700 @@ function restoreAccordionState() {
     }
 }
 
+// ========== АКТЁРЫ ОЗВУЧКИ ==========
+let currentSelectedActor = null;
+let currentSelectedCharacter = null;
+let currentCharacterId = null;
+
+// Загрузка списка актёров
+async function loadVoiceActors() {
+    const container = document.getElementById('voiceActorsList');
+    if (!container) return;
+
+    try {
+        const response = await fetch('/api/voice-actors');
+        if (response.ok) {
+            const actors = await response.json();
+            if (actors.length === 0) {
+                container.innerHTML = '<div class="empty-state">Нет актёров озвучки</div>';
+                return;
+            }
+
+            container.innerHTML = actors.map(actor => `
+                <div class="voice-actor-card" data-actor="${actor.username}" onclick="selectVoiceActor('${escapeHtml(actor.username)}')">
+                    <div class="voice-actor-avatar">
+                        ${actor.avatar ? `<img src="${actor.avatar}?t=${Date.now()}" alt="Avatar">` : `<i class="fas fa-microphone-alt"></i>`}
+                    </div>
+                    <div class="voice-actor-info">
+                        <div class="voice-actor-name">${escapeHtml(actor.username)}</div>
+                        <div class="voice-actor-stats">
+                            <i class="fas fa-mask"></i> ${actor.charactersCount || 0} персонажей
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        } else {
+            container.innerHTML = '<div class="error-message">Ошибка загрузки актёров</div>';
+        }
+    } catch (error) {
+        console.error('Ошибка загрузки актёров:', error);
+        container.innerHTML = '<div class="error-message">Ошибка загрузки актёров</div>';
+    }
+}
+
+// Выбор актёра для фильтрации персонажей
+function selectVoiceActor(username) {
+    currentSelectedActor = username;
+
+    // Обновляем активный класс
+    document.querySelectorAll('.voice-actor-card').forEach(card => {
+        if (card.getAttribute('data-actor') === username) {
+            card.classList.add('active');
+        } else {
+            card.classList.remove('active');
+        }
+    });
+
+    loadCharacters(username);
+}
+
+// Загрузка персонажей (с фильтром по актёру)
+async function loadCharacters(filterActor = null) {
+    const container = document.getElementById('charactersList');
+    if (!container) return;
+
+    try {
+        const response = await fetch('/api/characters');
+        if (response.ok) {
+            let characters = await response.json();
+
+            // Обновляем счётчик всех персонажей
+            await updateAllCharactersCount();
+
+            if (filterActor) {
+                characters = characters.filter(c => c.assignedTo === filterActor);
+            }
+
+            if (characters.length === 0) {
+                container.innerHTML = '<div class="empty-state">Нет персонажей</div>';
+                return;
+            }
+
+            container.innerHTML = characters.map(character => `
+                <div class="character-card" onclick="openCharacterModal(${character.id})">
+                    <div class="character-avatar">
+                        ${character.imageUrl ? `<img src="${character.imageUrl}" alt="Avatar">` : `<i class="fas fa-mask"></i>`}
+                    </div>
+                    <div class="character-name">${escapeHtml(character.name)}</div>
+                    <div class="character-actor">
+                        <i class="fas fa-user"></i> ${character.assignedTo ? escapeHtml(character.assignedTo) : 'Не назначен'}
+                    </div>
+                    <div class="character-stats">
+                        <span><i class="fas fa-headphones"></i> ${character.voiceRecordsCount || 0} озвучек</span>
+                    </div>
+                </div>
+            `).join('');
+        } else {
+            container.innerHTML = '<div class="error-message">Ошибка загрузки персонажей</div>';
+        }
+    } catch (error) {
+        console.error('Ошибка загрузки персонажей:', error);
+        container.innerHTML = '<div class="error-message">Ошибка загрузки персонажей</div>';
+    }
+}
+
+// Открытие модального окна с персонажем
+async function openCharacterModal(characterId) {
+    currentCharacterId = characterId;
+    const modal = document.getElementById('characterModal');
+    const characterNameSpan = document.getElementById('modalCharacterName');
+    const characterDescSpan = document.getElementById('modalCharacterDescription');
+    const characterActorSpan = document.getElementById('modalCharacterActor');
+    const voiceRecordsContainer = document.getElementById('modalVoiceRecords');
+    const addVoiceForm = document.getElementById('addVoiceRecordForm');
+
+    // Показываем модальное окно
+    modal.style.display = 'flex';
+
+    // Загружаем информацию о персонаже
+    try {
+        const response = await fetch('/api/characters');
+        if (response.ok) {
+            const characters = await response.json();
+            const character = characters.find(c => c.id === characterId);
+            if (character) {
+                characterNameSpan.textContent = character.name;
+                characterDescSpan.textContent = character.description || 'Нет описания';
+                characterActorSpan.textContent = character.assignedTo || 'Не назначен';
+
+                // Показываем форму добавления озвучки только если текущий пользователь - актёр этого персонажа
+                const isAssignedToMe = character.assignedTo === window.userData.username;
+                const isAdmin = window.userData.isAdmin;
+                addVoiceForm.style.display = (isAssignedToMe || isAdmin) ? 'block' : 'none';
+            }
+        }
+    } catch (error) {
+        console.error('Ошибка загрузки персонажа:', error);
+    }
+
+    // Загружаем озвучки персонажа
+    await loadCharacterVoiceRecords(characterId);
+}
+
+// Загрузка озвучек персонажа
+async function loadCharacterVoiceRecords(characterId) {
+    const container = document.getElementById('modalVoiceRecords');
+    if (!container) return;
+
+    try {
+        const response = await fetch(`/api/characters/${characterId}/voice-records`);
+
+        if (response.status === 403) {
+            const error = await response.json();
+            container.innerHTML = `<div class="error-message">${error.error || 'У вас нет доступа к этому персонажу'}</div>`;
+            return;
+        }
+
+        if (response.ok) {
+            const records = await response.json();
+            if (records.length === 0) {
+                container.innerHTML = '<div class="empty-state">Нет озвучек для этого персонажа</div>';
+                return;
+            }
+
+            container.innerHTML = records.map(record => `
+                <div class="voice-record-item">
+                    <div class="voice-record-info">
+                        <div class="voice-record-title">${escapeHtml(record.title)}</div>
+                        <div class="voice-record-description">${escapeHtml(record.description || '')}</div>
+                        <div class="voice-record-audio">
+                            <audio controls src="${record.audioUrl}"></audio>
+                        </div>
+                        <div class="voice-record-meta">
+                            🎙️ ${escapeHtml(record.voiceActor)} | 📅 ${new Date(record.createdAt).toLocaleDateString('ru-RU')}
+                        </div>
+                    </div>
+                    ${(record.voiceActor === window.userData.username || window.userData.isAdmin) ?
+                        `<button class="delete-voice-btn" onclick="deleteVoiceRecord(${record.id})"><i class="fas fa-trash"></i> Удалить</button>` : ''}
+                </div>
+            `).join('');
+        } else {
+            const error = await response.json();
+            container.innerHTML = `<div class="error-message">${error.error || 'Ошибка загрузки озвучек'}</div>`;
+        }
+    } catch (error) {
+        console.error('Ошибка загрузки озвучек:', error);
+        container.innerHTML = '<div class="error-message">Ошибка загрузки озвучек</div>';
+    }
+}
+
+// Добавление озвучки
+async function saveVoiceRecord() {
+    const title = document.getElementById('voiceTitle').value.trim();
+    const description = document.getElementById('voiceDescription').value.trim();
+    const audioUrl = document.getElementById('voiceAudioUrl').value.trim();
+
+    if (!title) {
+        showNotification('❌ Введите название озвучки', 'error');
+        return;
+    }
+
+    if (!audioUrl) {
+        showNotification('❌ Укажите ссылку на аудиофайл', 'error');
+        return;
+    }
+
+    const csrf = getCsrfToken();
+    const headers = { 'Content-Type': 'application/json' };
+    if (csrf) headers[csrf.header] = csrf.token;
+
+    try {
+        const response = await fetch(`/api/characters/${currentCharacterId}/voice-record`, {
+            method: 'POST',
+            headers: headers,
+            body: JSON.stringify({ title, description, audioUrl })
+        });
+
+        const data = await response.json();
+
+        if (response.ok) {
+            showNotification('✅ Озвучка добавлена', 'success');
+            document.getElementById('voiceTitle').value = '';
+            document.getElementById('voiceDescription').value = '';
+            document.getElementById('voiceAudioUrl').value = '';
+            await loadCharacterVoiceRecords(currentCharacterId);
+            await loadCharacters(currentSelectedActor);
+        } else {
+            showNotification(`❌ ${data.error || 'Ошибка'}`, 'error');
+        }
+    } catch (error) {
+        console.error('Ошибка:', error);
+        showNotification('❌ Ошибка соединения', 'error');
+    }
+}
+
+// Удаление озвучки
+async function deleteVoiceRecord(recordId) {
+    if (!confirm('Удалить эту озвучку?')) return;
+
+    const csrf = getCsrfToken();
+    const headers = {};
+    if (csrf) headers[csrf.header] = csrf.token;
+
+    try {
+        const response = await fetch(`/api/voice-records/${recordId}`, {
+            method: 'DELETE',
+            headers: headers
+        });
+
+        if (response.ok) {
+            showNotification('✅ Озвучка удалена', 'success');
+            await loadCharacterVoiceRecords(currentCharacterId);
+            await loadCharacters(currentSelectedActor);
+        } else {
+            const data = await response.json();
+            showNotification(`❌ ${data.error || 'Ошибка'}`, 'error');
+        }
+    } catch (error) {
+        console.error('Ошибка:', error);
+        showNotification('❌ Ошибка соединения', 'error');
+    }
+}
+
+// Закрытие модального окна
+function closeModal() {
+    const modal = document.getElementById('characterModal');
+    modal.style.display = 'none';
+    currentCharacterId = null;
+}
+
+// ========== АДМИНСКИЕ ФУНКЦИИ ДЛЯ ПЕРСОНАЖЕЙ ==========
+
+// Открытие формы создания персонажа
+function openCreateCharacterModal() {
+    // Загружаем список актёров для выбора
+    fetch('/api/voice-actors')
+        .then(res => res.json())
+        .then(actors => {
+            const actorOptions = actors.map(actor =>
+                `<option value="${escapeHtml(actor.username)}">${escapeHtml(actor.username)}</option>`
+            ).join('');
+
+            const modalHtml = `
+                <div id="createCharacterModal" class="modal" style="display: flex;">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h3><i class="fas fa-plus"></i> Создать персонажа</h3>
+                            <button class="modal-close-btn" onclick="closeCreateCharacterModal()">&times;</button>
+                        </div>
+                        <div class="modal-body">
+                            <div class="modal-form">
+                                <input type="text" id="newCharacterName" placeholder="Имя персонажа *" class="form-input">
+                                <textarea id="newCharacterDescription" placeholder="Описание персонажа" class="form-textarea"></textarea>
+
+                                <!-- Вместо ссылки - загрузка изображения -->
+                                <div class="avatar-upload-area">
+                                    <label for="characterImageFile" class="avatar-upload-label">
+                                        <i class="fas fa-cloud-upload-alt"></i>
+                                        <span>Загрузить изображение персонажа</span>
+                                    </label>
+                                    <input type="file" id="characterImageFile" accept="image/*" style="display: none;">
+                                    <div id="characterImagePreview" class="character-image-preview" style="display: none;">
+                                        <img id="characterPreviewImg" src="" alt="Preview">
+                                        <button type="button" class="remove-image-btn" onclick="removeCharacterImage()">✖</button>
+                                    </div>
+                                    <input type="hidden" id="newCharacterImage" value="">
+                                    <p style="font-size: 0.7rem; color: #7c8bd6; margin-top: 5px;">Максимальный размер: 2 МБ</p>
+                                </div>
+
+                                <select id="newCharacterActor">
+                                    <option value="">-- Выбрать актёра (необязательно) --</option>
+                                    ${actorOptions}
+                                </select>
+                                <div class="modal-buttons">
+                                    <button class="btn-primary" onclick="createCharacter()">Создать</button>
+                                    <button class="btn-secondary" onclick="closeCreateCharacterModal()">Отмена</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            const oldModal = document.getElementById('createCharacterModal');
+            if (oldModal) oldModal.remove();
+            document.body.insertAdjacentHTML('beforeend', modalHtml);
+
+            // Добавляем обработчик загрузки изображения
+            const imageInput = document.getElementById('characterImageFile');
+            if (imageInput) {
+                imageInput.addEventListener('change', handleCharacterImageUpload);
+            }
+        })
+        .catch(error => console.error('Ошибка загрузки актёров:', error));
+}
+
+// Удалить выбранное изображение
+function removeCharacterImage() {
+    document.getElementById('characterImagePreview').style.display = 'none';
+    document.getElementById('newCharacterImage').value = '';
+    document.getElementById('characterImageFile').value = '';
+}
+
+// Обработчик загрузки изображения персонажа
+async function handleCharacterImageUpload(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    // Проверка размера (2 МБ)
+    if (file.size > 2 * 1024 * 1024) {
+        showNotification('❌ Файл太大了! Максимальный размер 2 МБ', 'error');
+        return;
+    }
+
+    // Проверка типа файла
+    if (!file.type.startsWith('image/')) {
+        showNotification('❌ Пожалуйста, выберите изображение', 'error');
+        return;
+    }
+
+    const formData = new FormData();
+    formData.append('avatar', file);
+
+    const csrf = getCsrfToken();
+    const headers = {};
+    if (csrf) headers[csrf.header] = csrf.token;
+
+    try {
+        const response = await fetch('/api/upload/character-image', {
+            method: 'POST',
+            headers: headers,
+            body: formData
+        });
+
+        if (response.ok) {
+            const data = await response.json();
+            document.getElementById('newCharacterImage').value = data.imageUrl;
+
+            // Показываем превью
+            const preview = document.getElementById('characterImagePreview');
+            const previewImg = document.getElementById('characterPreviewImg');
+            previewImg.src = data.imageUrl;
+            preview.style.display = 'block';
+
+            showNotification('✅ Изображение загружено', 'success');
+        } else {
+            const error = await response.json();
+            showNotification(`❌ ${error.error || 'Ошибка загрузки'}`, 'error');
+        }
+    } catch (error) {
+        console.error('Ошибка:', error);
+        showNotification('❌ Ошибка соединения', 'error');
+    }
+}
+
+function closeCreateCharacterModal() {
+    const modal = document.getElementById('createCharacterModal');
+    if (modal) modal.remove();
+}
+
+async function createCharacter() {
+    const name = document.getElementById('newCharacterName')?.value.trim();
+    const description = document.getElementById('newCharacterDescription')?.value.trim();
+    const imageUrl = document.getElementById('newCharacterImage')?.value.trim();
+    const assignedTo = document.getElementById('newCharacterActor')?.value;
+
+    if (!name) {
+        showNotification('❌ Введите имя персонажа', 'error');
+        return;
+    }
+
+    const csrf = getCsrfToken();
+    const headers = { 'Content-Type': 'application/json' };
+    if (csrf) headers[csrf.header] = csrf.token;
+
+    try {
+        const response = await fetch('/api/admin/characters', {
+            method: 'POST',
+            headers: headers,
+            body: JSON.stringify({ name, description, assignedTo, imageUrl })
+        });
+
+        const data = await response.json();
+
+        if (response.ok) {
+            showNotification('✅ Персонаж создан', 'success');
+            closeCreateCharacterModal();
+            await loadCharacters(currentSelectedActor);
+        } else {
+            showNotification(`❌ ${data.error || 'Ошибка'}`, 'error');
+        }
+    } catch (error) {
+        console.error('Ошибка:', error);
+        showNotification('❌ Ошибка соединения', 'error');
+    }
+}
+
+// Открытие формы выдачи персонажа
+async function openAssignCharacterModal() {
+    // Загружаем список невыданных персонажей и актёров
+    const [charactersRes, actorsRes] = await Promise.all([
+        fetch('/api/characters'),
+        fetch('/api/voice-actors')
+    ]);
+
+    const characters = await charactersRes.json();
+    const actors = await actorsRes.json();
+
+    const unassignedCharacters = characters.filter(c => !c.assignedTo);
+
+    if (unassignedCharacters.length === 0) {
+        showNotification('❌ Нет свободных персонажей', 'error');
+        return;
+    }
+
+    const modalHtml = `
+        <div id="assignCharacterModal" class="modal" style="display: flex;">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3><i class="fas fa-user-plus"></i> Выдать персонажа актёру</h3>
+                    <span class="modal-close" onclick="closeAssignCharacterModal()">&times;</span>
+                </div>
+                <div class="modal-body">
+                    <div class="modal-form">
+                        <select id="assignCharacterSelect">
+                            <option value="">-- Выберите персонажа --</option>
+                            ${unassignedCharacters.map(c => `<option value="${c.id}">${escapeHtml(c.name)}</option>`).join('')}
+                        </select>
+                        <select id="assignActorSelect">
+                            <option value="">-- Выберите актёра --</option>
+                            ${actors.map(a => `<option value="${escapeHtml(a.username)}">${escapeHtml(a.username)}</option>`).join('')}
+                        </select>
+                        <div class="modal-buttons">
+                            <button class="btn-primary" onclick="assignCharacter()">Выдать</button>
+                            <button class="btn-secondary" onclick="closeAssignCharacterModal()">Отмена</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+
+    const oldModal = document.getElementById('assignCharacterModal');
+    if (oldModal) oldModal.remove();
+
+    document.body.insertAdjacentHTML('beforeend', modalHtml);
+}
+
+function closeAssignCharacterModal() {
+    const modal = document.getElementById('assignCharacterModal');
+    if (modal) modal.remove();
+}
+
+async function assignCharacter() {
+    const characterId = document.getElementById('assignCharacterSelect')?.value;
+    const assignedTo = document.getElementById('assignActorSelect')?.value;
+
+    if (!characterId || !assignedTo) {
+        showNotification('❌ Выберите персонажа и актёра', 'error');
+        return;
+    }
+
+    const csrf = getCsrfToken();
+    const headers = { 'Content-Type': 'application/json' };
+    if (csrf) headers[csrf.header] = csrf.token;
+
+    try {
+        const response = await fetch(`/api/admin/characters/${characterId}/assign`, {
+            method: 'PUT',
+            headers: headers,
+            body: JSON.stringify({ assignedTo })
+        });
+
+        const data = await response.json();
+
+        if (response.ok) {
+            showNotification('✅ Персонаж выдан', 'success');
+            closeAssignCharacterModal();
+            await loadCharacters(currentSelectedActor);
+            await loadVoiceActors();
+        } else {
+            showNotification(`❌ ${data.error || 'Ошибка'}`, 'error');
+        }
+    } catch (error) {
+        console.error('Ошибка:', error);
+        showNotification('❌ Ошибка соединения', 'error');
+    }
+}
+
+// ========== АДМИНСКИЕ ФУНКЦИИ ДЛЯ ПЕРСОНАЖЕЙ ==========
+
+// Открытие формы смены актёра
+async function openReassignModal() {
+    if (!currentCharacterId) return;
+
+    // Загружаем список актёров
+    const response = await fetch('/api/voice-actors');
+    const actors = await response.json();
+
+    const select = document.getElementById('reassignActorSelect');
+    select.innerHTML = '<option value="">-- Выберите актёра --</option>' +
+        actors.map(a => `<option value="${escapeHtml(a.username)}">${escapeHtml(a.username)}</option>`).join('');
+
+    document.getElementById('reassignCharacterModal').style.display = 'flex';
+}
+
+function closeReassignModal() {
+    document.getElementById('reassignCharacterModal').style.display = 'none';
+}
+
+async function confirmReassign() {
+    const assignedTo = document.getElementById('reassignActorSelect').value;
+    if (!assignedTo) {
+        showNotification('❌ Выберите актёра', 'error');
+        return;
+    }
+
+    const csrf = getCsrfToken();
+    const headers = { 'Content-Type': 'application/json' };
+    if (csrf) headers[csrf.header] = csrf.token;
+
+    try {
+        const response = await fetch(`/api/admin/characters/${currentCharacterId}/reassign`, {
+            method: 'PUT',
+            headers: headers,
+            body: JSON.stringify({ assignedTo })
+        });
+
+        if (response.ok) {
+            showNotification('✅ Актёр персонажа изменён', 'success');
+            closeReassignModal();
+            await loadCharacters(currentSelectedActor);
+            await loadVoiceActors();
+            // Обновляем текущее модальное окно
+            await openCharacterModal(currentCharacterId);
+        } else {
+            const data = await response.json();
+            showNotification(`❌ ${data.error || 'Ошибка'}`, 'error');
+        }
+    } catch (error) {
+        console.error('Ошибка:', error);
+        showNotification('❌ Ошибка соединения', 'error');
+    }
+}
+
+// Удаление персонажа
+async function deleteCharacter() {
+    if (!confirm('Удалить этого персонажа? Все озвучки также будут удалены!')) return;
+
+    const csrf = getCsrfToken();
+    const headers = {};
+    if (csrf) headers[csrf.header] = csrf.token;
+
+    try {
+        const response = await fetch(`/api/admin/characters/${currentCharacterId}`, {
+            method: 'DELETE',
+            headers: headers
+        });
+
+        if (response.ok) {
+            showNotification('✅ Персонаж удалён', 'success');
+            closeModal();
+            await loadCharacters(currentSelectedActor);
+            await loadVoiceActors();
+        } else {
+            const data = await response.json();
+            showNotification(`❌ ${data.error || 'Ошибка'}`, 'error');
+        }
+    } catch (error) {
+        console.error('Ошибка:', error);
+        showNotification('❌ Ошибка соединения', 'error');
+    }
+}
+
+// Обновлённая openCharacterModal с админскими кнопками
+async function openCharacterModal(characterId) {
+    currentCharacterId = characterId;
+    const modal = document.getElementById('characterModal');
+    const characterNameSpan = document.getElementById('modalCharacterName');
+    const characterDescSpan = document.getElementById('modalCharacterDescription');
+    const characterActorSpan = document.getElementById('modalCharacterActor');
+    const voiceRecordsContainer = document.getElementById('modalVoiceRecords');
+    const addVoiceForm = document.getElementById('addVoiceRecordForm');
+    const adminActions = document.getElementById('adminCharacterActions');
+
+    modal.style.display = 'flex';
+
+    try {
+        const response = await fetch('/api/characters');
+        if (response.ok) {
+            const characters = await response.json();
+            const character = characters.find(c => c.id === characterId);
+            if (character) {
+                characterNameSpan.textContent = character.name;
+                characterDescSpan.textContent = character.description || 'Нет описания';
+                characterActorSpan.textContent = character.assignedTo || 'Не назначен';
+
+                const isAssignedToMe = character.assignedTo === window.userData.username;
+                const isAdmin = window.userData.isAdmin;
+
+                addVoiceForm.style.display = (isAssignedToMe || isAdmin) ? 'block' : 'none';
+                adminActions.style.display = isAdmin ? 'flex' : 'none';
+            }
+        }
+    } catch (error) {
+        console.error('Ошибка загрузки персонажа:', error);
+    }
+
+    await loadCharacterVoiceRecords(characterId);
+}
+
+// Обновлённая инициализация загрузки аудио с красивой кнопкой
+function initAudioUpload() {
+    const audioFile = document.getElementById('voiceAudioFile');
+    const audioFileName = document.getElementById('audioFileName');
+
+    if (audioFile) {
+        audioFile.addEventListener('change', async (e) => {
+            const file = e.target.files[0];
+            if (file && currentCharacterId) {
+                const uploadLabel = document.querySelector('.audio-upload-label');
+                const originalText = uploadLabel.innerHTML;
+                uploadLabel.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Загрузка...';
+                uploadLabel.style.opacity = '0.7';
+
+                const audioUrl = await uploadAudioFile(file, currentCharacterId);
+
+                if (audioUrl) {
+                    document.getElementById('voiceAudioUrl').value = audioUrl;
+                    audioFileName.innerHTML = `<i class="fas fa-check-circle"></i> ${escapeHtml(file.name)}`;
+                    audioFileName.style.display = 'block';
+                    showNotification('✅ Аудиофайл загружен', 'success');
+                }
+
+                uploadLabel.innerHTML = originalText;
+                uploadLabel.style.opacity = '1';
+                audioFile.value = '';
+            }
+        });
+    }
+}
+
+// Добавляем обработчики для админских кнопок в DOMContentLoaded
+document.getElementById('unassignCharacterBtn')?.addEventListener('click', () => {
+    if (currentCharacterId) {
+        const characterName = document.getElementById('modalCharacterName')?.textContent;
+        unassignCharacter(currentCharacterId, characterName);
+    }
+});
+
+document.getElementById('reassignCharacterBtn')?.addEventListener('click', openReassignModal);
+document.getElementById('deleteCharacterBtn')?.addEventListener('click', deleteCharacter);
+
 // ========== ИНИЦИАЛИЗАЦИЯ ==========
 document.addEventListener('DOMContentLoaded', async () => {
     initTabs();
+    initAudioUpload();
     initRegistrationForm();
     await getCurrentUserId();
     startHeartbeat();
@@ -1101,4 +1968,23 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (document.querySelector('#dashboard-tab.active')) await loadTeamMembers();
         await checkAdminRights();
     }, 30000);
+
+    // Загрузка актёров и персонажей
+    await loadVoiceActors();
+    await loadCharacters();
+
+    // Обработчики для админских кнопок
+    document.getElementById('addCharacterBtn')?.addEventListener('click', openCreateCharacterModal);
+    document.getElementById('assignCharacterBtn')?.addEventListener('click', openAssignCharacterModal);
+
+    // Закрытие модального окна при клике на крестик или вне окна
+    document.addEventListener('click', (e) => {
+        const modal = document.getElementById('characterModal');
+        if (e.target === modal) {
+            closeModal();
+        }
+    });
+
+    // Обработчик кнопки сохранения озвучки
+    document.getElementById('saveVoiceRecordBtn')?.addEventListener('click', saveVoiceRecord);
 });

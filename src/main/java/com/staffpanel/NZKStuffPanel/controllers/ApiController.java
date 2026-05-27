@@ -3,8 +3,7 @@ package com.staffpanel.NZKStuffPanel.controllers;
 import com.staffpanel.NZKStuffPanel.models.RegistrationRequest;
 import com.staffpanel.NZKStuffPanel.models.Role;
 import com.staffpanel.NZKStuffPanel.models.User;
-import com.staffpanel.NZKStuffPanel.repository.RegistrationRequestRepository;
-import com.staffpanel.NZKStuffPanel.repository.UserRepository;
+import com.staffpanel.NZKStuffPanel.repository.*;
 import com.staffpanel.NZKStuffPanel.services.CloudinaryService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -17,7 +16,11 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
 import org.springframework.web.bind.annotation.*;
 import com.staffpanel.NZKStuffPanel.models.Task;
-import com.staffpanel.NZKStuffPanel.repository.TaskRepository;
+import com.staffpanel.NZKStuffPanel.models.Character;
+import com.staffpanel.NZKStuffPanel.models.VoiceRecord;
+import com.staffpanel.NZKStuffPanel.repository.CharacterRepository;
+import com.staffpanel.NZKStuffPanel.repository.VoiceRecordRepository;
+
 import java.time.LocalDateTime;
 
 import jakarta.servlet.http.HttpServletRequest;
@@ -140,9 +143,6 @@ public class ApiController {
                         case "VOICE_ACTOR":
                             roles.add(Role.ROLE_VOICE_ACTOR);
                             break;
-                        case "ANIMATOR":
-                            roles.add(Role.ROLE_ANIMATOR);
-                            break;
                     }
                 }
             }
@@ -178,7 +178,6 @@ public class ApiController {
         return ResponseEntity.ok(response);
     }
 
-    // ========== УДАЛИТЬ ПОЛЬЗОВАТЕЛЯ (ДЛЯ АДМИНКИ) ==========
     @DeleteMapping("/admin/users/{id}")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<?> deleteUser(@PathVariable Long id) {
@@ -188,6 +187,13 @@ public class ApiController {
             Map<String, String> response = new HashMap<>();
             response.put("error", "Пользователь не найден");
             return ResponseEntity.badRequest().body(response);
+        }
+
+        User user = userOpt.get();
+
+        // Удаляем аватар из Cloudinary
+        if (user.getAvatar() != null && !user.getAvatar().isEmpty()) {
+            cloudinaryService.deleteFileByUrl(user.getAvatar());
         }
 
         userRepository.deleteById(id);
@@ -232,9 +238,6 @@ public class ApiController {
                         break;
                     case "VOICE_ACTOR":
                         roles.add(Role.ROLE_VOICE_ACTOR);
-                        break;
-                    case "ANIMATOR":
-                        roles.add(Role.ROLE_ANIMATOR);
                         break;
                 }
             }
@@ -517,13 +520,18 @@ public class ApiController {
             return ResponseEntity.badRequest().body(Map.of("error", "Пользователь не найден"));
         }
 
+        User user = userOpt.get();
+
+        // Удаляем старый аватар
+        if (user.getAvatar() != null && !user.getAvatar().isEmpty()) {
+            cloudinaryService.deleteFileByUrl(user.getAvatar());
+        }
+
         try {
             String avatarUrl = cloudinaryService.uploadAvatar(file, userOpt.get().getId());
-            User user = userOpt.get();
             user.setAvatar(avatarUrl);
             userRepository.save(user);
 
-            // Устанавливаем заголовки для отключения кэша
             response.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
             response.setHeader("Pragma", "no-cache");
             response.setHeader("Expires", "0");
@@ -533,6 +541,7 @@ public class ApiController {
             return ResponseEntity.badRequest().body(Map.of("error", "Ошибка загрузки аватара"));
         }
     }
+
     // ========== ПОЛУЧИТЬ ТЕКУЩЕГО ПОЛЬЗОВАТЕЛЯ (ДЛЯ ХЕДЕРА) ==========
     @GetMapping("/current-user")
     public ResponseEntity<?> getCurrentUser(Authentication auth) {
@@ -710,6 +719,329 @@ public class ApiController {
         }
 
         return ResponseEntity.ok(builders);
+    }
+
+    // ========== ПЕРСОНАЖИ И ОЗВУЧКА ==========
+
+    @Autowired
+    private CharacterRepository characterRepository;
+
+    @Autowired
+    private VoiceRecordRepository voiceRecordRepository;
+
+    // Получить всех персонажей (админ видит всех, актёр только своих)
+    @GetMapping("/characters")
+    public ResponseEntity<?> getCharacters(Authentication auth) {
+        String username = auth.getName();
+        boolean isAdmin = auth.getAuthorities().stream()
+                .anyMatch(granted -> granted.getAuthority().equals("ROLE_ADMIN"));
+
+        List<Character> characters;
+        if (isAdmin) {
+            characters = characterRepository.findAll();
+        } else {
+            characters = characterRepository.findByAssignedTo(username);
+        }
+
+        List<Map<String, Object>> result = new ArrayList<>();
+        for (Character character : characters) {
+            Map<String, Object> charMap = new HashMap<>();
+            charMap.put("id", character.getId());
+            charMap.put("name", character.getName());
+            charMap.put("description", character.getDescription());
+            charMap.put("assignedTo", character.getAssignedTo());
+            charMap.put("createdBy", character.getCreatedBy());
+            charMap.put("imageUrl", character.getImageUrl());
+            charMap.put("voiceRecordsCount", character.getVoiceRecords().size());
+            result.add(charMap);
+        }
+
+        return ResponseEntity.ok(result);
+    }
+
+    // Получить всех актёров озвучки
+    @GetMapping("/voice-actors")
+    public ResponseEntity<?> getVoiceActors() {
+        List<User> allUsers = userRepository.findAll();
+        List<Map<String, Object>> voiceActors = new ArrayList<>();
+
+        for (User user : allUsers) {
+            boolean isVoiceActor = user.getRoles().stream()
+                    .anyMatch(role -> role.name().equals("ROLE_VOICE_ACTOR"));
+
+            if (isVoiceActor) {
+                Map<String, Object> actorMap = new HashMap<>();
+                actorMap.put("id", user.getId());
+                actorMap.put("username", user.getUsername());
+                actorMap.put("avatar", user.getAvatar());
+
+                // Считаем количество персонажей у актёра
+                long charactersCount = characterRepository.findByAssignedTo(user.getUsername()).size();
+                actorMap.put("charactersCount", charactersCount);
+
+                voiceActors.add(actorMap);
+            }
+        }
+
+        return ResponseEntity.ok(voiceActors);
+    }
+
+    // Создать персонажа (только админ)
+    @PostMapping("/admin/characters")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<?> createCharacter(@RequestBody Map<String, String> data, Authentication auth) {
+        String name = data.get("name");
+        String description = data.get("description");
+        String assignedTo = data.get("assignedTo");
+        String imageUrl = data.get("imageUrl");
+        String currentUser = auth.getName();
+
+        if (name == null || name.trim().isEmpty()) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Введите имя персонажа"));
+        }
+
+        Character character = new Character();
+        character.setName(name);
+        character.setDescription(description != null ? description : "");
+        character.setAssignedTo(assignedTo);
+        character.setCreatedBy(currentUser);
+        character.setImageUrl(imageUrl);
+
+        characterRepository.save(character);
+
+        return ResponseEntity.ok(Map.of("success", "Персонаж создан", "characterId", character.getId()));
+    }
+
+    // Выдать персонажа актёру (только админ)
+    @PutMapping("/admin/characters/{id}/assign")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<?> assignCharacter(@PathVariable Long id, @RequestBody Map<String, String> data) {
+        String assignedTo = data.get("assignedTo");
+
+        Optional<Character> characterOpt = characterRepository.findById(id);
+        if (characterOpt.isEmpty()) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Персонаж не найден"));
+        }
+
+        Character character = characterOpt.get();
+        character.setAssignedTo(assignedTo);
+        characterRepository.save(character);
+
+        return ResponseEntity.ok(Map.of("success", "Персонаж выдан актёру " + assignedTo));
+    }
+
+    // Забрать персонажа у актёра (только админ)
+    @DeleteMapping("/admin/characters/{id}/unassign")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<?> unassignCharacter(@PathVariable Long id) {
+        Optional<Character> characterOpt = characterRepository.findById(id);
+        if (characterOpt.isEmpty()) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Персонаж не найден"));
+        }
+
+        Character character = characterOpt.get();
+        character.setAssignedTo(null);
+        characterRepository.save(character);
+
+        return ResponseEntity.ok(Map.of("success", "Персонаж отобран у актёра"));
+    }
+
+    // Удалить персонажа (только админ)
+    @DeleteMapping("/admin/characters/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<?> deleteCharacter(@PathVariable Long id) {
+        Optional<Character> characterOpt = characterRepository.findById(id);
+        if (characterOpt.isEmpty()) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Персонаж не найден"));
+        }
+
+        Character character = characterOpt.get();
+
+        // Удаляем изображение персонажа
+        if (character.getImageUrl() != null && !character.getImageUrl().isEmpty()) {
+            cloudinaryService.deleteFileByUrl(character.getImageUrl());
+        }
+
+        // Удаляем все озвучки персонажа
+        List<VoiceRecord> records = voiceRecordRepository.findByCharacterId(id);
+        for (VoiceRecord record : records) {
+            if (record.getAudioUrl() != null && !record.getAudioUrl().isEmpty()) {
+                cloudinaryService.deleteFileByUrl(record.getAudioUrl());
+            }
+        }
+
+        characterRepository.deleteById(id);
+        return ResponseEntity.ok(Map.of("success", "Персонаж удалён"));
+    }
+
+    // Получить озвучки персонажа
+    @GetMapping("/characters/{id}/voice-records")
+    public ResponseEntity<?> getCharacterVoiceRecords(@PathVariable Long id, Authentication auth) {
+        String username = auth.getName();
+        boolean isAdmin = auth.getAuthorities().stream()
+                .anyMatch(granted -> granted.getAuthority().equals("ROLE_ADMIN"));
+
+        Optional<Character> characterOpt = characterRepository.findById(id);
+        if (characterOpt.isEmpty()) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Персонаж не найден"));
+        }
+
+        Character character = characterOpt.get();
+
+        // ДОБАВЬ ЭТУ ПРОВЕРКУ
+        // Если персонаж не закреплён ни за кем - только админ может смотреть
+        if (character.getAssignedTo() == null && !isAdmin) {
+            return ResponseEntity.status(403).body(Map.of("error", "Этот персонаж ещё не выдан актёру. Доступ только у администратора."));
+        }
+
+        // Проверяем доступ: админ или актёр, которому выдан персонаж
+        if (!isAdmin && !username.equals(character.getAssignedTo())) {
+            return ResponseEntity.status(403).body(Map.of("error", "У вас недостаточно прав просмотреть озвучки этого персонажа"));
+        }
+
+        List<VoiceRecord> records = voiceRecordRepository.findByCharacterId(id);
+        List<Map<String, Object>> result = new ArrayList<>();
+
+        for (VoiceRecord record : records) {
+            Map<String, Object> recordMap = new HashMap<>();
+            recordMap.put("id", record.getId());
+            recordMap.put("title", record.getTitle());
+            recordMap.put("description", record.getDescription());
+            recordMap.put("audioUrl", record.getAudioUrl());
+            recordMap.put("voiceActor", record.getVoiceActor());
+            recordMap.put("createdAt", record.getCreatedAt());
+            result.add(recordMap);
+        }
+
+        return ResponseEntity.ok(result);
+    }
+
+    // Загрузить озвучку для персонажа
+    @PostMapping("/characters/{id}/voice-record")
+    public ResponseEntity<?> addVoiceRecord(@PathVariable Long id,
+                                            @RequestBody Map<String, String> data,
+                                            Authentication auth) {
+        String username = auth.getName();
+        String title = data.get("title");
+        String description = data.get("description");
+        String audioUrl = data.get("audioUrl");
+
+        Optional<Character> characterOpt = characterRepository.findById(id);
+        if (characterOpt.isEmpty()) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Персонаж не найден"));
+        }
+
+        Character character = characterOpt.get();
+
+        // Проверяем, что актёр имеет право озвучивать этого персонажа
+        if (!username.equals(character.getAssignedTo())) {
+            return ResponseEntity.status(403).body(Map.of("error", "Вы не можете озвучивать этого персонажа"));
+        }
+
+        if (title == null || title.trim().isEmpty()) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Введите название озвучки"));
+        }
+
+        if (audioUrl == null || audioUrl.trim().isEmpty()) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Укажите ссылку на аудиофайл"));
+        }
+
+        VoiceRecord record = new VoiceRecord();
+        record.setTitle(title);
+        record.setDescription(description != null ? description : "");
+        record.setAudioUrl(audioUrl);
+        record.setCharacter(character);
+        record.setVoiceActor(username);
+
+        voiceRecordRepository.save(record);
+
+        return ResponseEntity.ok(Map.of("success", "Озвучка добавлена", "recordId", record.getId()));
+    }
+
+    // Удалить озвучку (актёр может удалить свою, админ - любую)
+    @DeleteMapping("/voice-records/{id}")
+    public ResponseEntity<?> deleteVoiceRecord(@PathVariable Long id, Authentication auth) {
+        String username = auth.getName();
+        boolean isAdmin = auth.getAuthorities().stream()
+                .anyMatch(granted -> granted.getAuthority().equals("ROLE_ADMIN"));
+
+        Optional<VoiceRecord> recordOpt = voiceRecordRepository.findById(id);
+        if (recordOpt.isEmpty()) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Озвучка не найдена"));
+        }
+
+        VoiceRecord record = recordOpt.get();
+
+        if (!isAdmin && !username.equals(record.getVoiceActor())) {
+            return ResponseEntity.status(403).body(Map.of("error", "Вы можете удалять только свои озвучки"));
+        }
+
+        // Удаляем аудиофайл из Cloudinary
+        if (record.getAudioUrl() != null && !record.getAudioUrl().isEmpty()) {
+            cloudinaryService.deleteFileByUrl(record.getAudioUrl());
+        }
+
+        voiceRecordRepository.deleteById(id);
+        return ResponseEntity.ok(Map.of("success", "Озвучка удалена"));
+    }
+
+    // Загрузить аудиофайл на Cloudinary (для озвучки)
+    @PostMapping("/characters/{id}/upload-audio")
+    @PreAuthorize("hasRole('VOICE_ACTOR') or hasRole('ADMIN')")
+    public ResponseEntity<?> uploadCharacterAudio(@PathVariable Long id,
+                                                  @RequestParam("audio") MultipartFile file,
+                                                  Authentication auth) {
+        String username = auth.getName();
+
+        Optional<Character> characterOpt = characterRepository.findById(id);
+        if (characterOpt.isEmpty()) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Персонаж не найден"));
+        }
+
+        Character character = characterOpt.get();
+
+        // Проверяем права
+        if (!username.equals(character.getAssignedTo()) && !auth.getAuthorities().stream()
+                .anyMatch(granted -> granted.getAuthority().equals("ROLE_ADMIN"))) {
+            return ResponseEntity.status(403).body(Map.of("error", "Вы не можете загружать аудио для этого персонажа"));
+        }
+
+        try {
+            String audioUrl = cloudinaryService.uploadAudio(file, id);
+            return ResponseEntity.ok(Map.of("audioUrl", audioUrl));
+        } catch (IOException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Ошибка загрузки аудио"));
+        }
+    }
+
+    // Обновить актёра персонажа (админ)
+    @PutMapping("/admin/characters/{id}/reassign")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<?> reassignCharacter(@PathVariable Long id, @RequestBody Map<String, String> data) {
+        String assignedTo = data.get("assignedTo");
+
+        Optional<Character> characterOpt = characterRepository.findById(id);
+        if (characterOpt.isEmpty()) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Персонаж не найден"));
+        }
+
+        Character character = characterOpt.get();
+        character.setAssignedTo(assignedTo);
+        characterRepository.save(character);
+
+        return ResponseEntity.ok(Map.of("success", "Актёр персонажа изменён на " + assignedTo));
+    }
+
+    // Загрузка изображения для персонажа
+    @PostMapping("/upload/character-image")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<?> uploadCharacterImage(@RequestParam("avatar") MultipartFile file) {
+        try {
+            String imageUrl = cloudinaryService.uploadCharacterImage(file);
+            return ResponseEntity.ok(Map.of("imageUrl", imageUrl));
+        } catch (IOException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Ошибка загрузки изображения"));
+        }
     }
 
 }

@@ -1546,6 +1546,419 @@ audio {
     opacity: 0.9;
 }
 
+.stat-value {
+    font-size: 1.2rem;
+    font-weight: 600;
+    line-height: 1.2;
+    white-space: nowrap;
+}
+
+/* ========== АКТЁРЫ ОЗВУЧКИ ========== */
+.voice-actors-layout {
+    display: flex;
+    gap: 1.5rem;
+    flex-wrap: wrap;
+}
+
+.voice-actors-sidebar {
+    flex: 1;
+    min-width: 280px;
+    background: #0e1120;
+    border-radius: 1.2rem;
+    padding: 1rem;
+    border: 1px solid #2a2f48;
+}
+
+.voice-actors-sidebar h3 {
+    margin-bottom: 1rem;
+    color: #cbd5ff;
+    padding: 10px;
+    font-size: 1rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.voice-actors-list-container {
+    display: flex;
+    flex-direction: column;
+    gap: 0.8rem;
+}
+
+.voice-actor-card {
+    background: #1a1f35;
+    border-radius: 0.8rem;
+    padding: 0.8rem;
+    display: flex;
+    align-items: center;
+    gap: 0.8rem;
+    border: 1px solid #2a2f48;
+    transition: all 0.2s;
+    cursor: pointer;
+}
+
+.voice-actor-card:hover {
+    transform: translateX(4px);
+    border-color: #667eea;
+    background: #1f253f;
+}
+
+.voice-actor-card.active {
+    border-color: #667eea;
+    background: linear-gradient(135deg, #1f253f, #1a1f35);
+}
+
+.voice-actor-avatar {
+    width: 48px;
+    height: 48px;
+    background: linear-gradient(135deg, #2c3f94, #1a266a);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.2rem;
+    color: #ffda88;
+    overflow: hidden;
+}
+
+.voice-actor-avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.voice-actor-info {
+    flex: 1;
+}
+
+.voice-actor-name {
+    font-weight: 700;
+    color: white;
+    margin-bottom: 0.2rem;
+}
+
+.voice-actor-stats {
+    font-size: 0.7rem;
+    color: #7c8bd6;
+}
+
+.characters-content {
+    flex: 2;
+    min-width: 400px;
+    background: #0e1120;
+    border-radius: 1.2rem;
+    padding: 1rem;
+    border: 1px solid #2a2f48;
+}
+
+.characters-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+.characters-header h3 {
+    color: #cbd5ff;
+    font-size: 1rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.assign-character-btn, .add-voice-actor-btn {
+    background: linear-gradient(135deg, #3b4ecf, #562de0);
+    border: none;
+    padding: 0.4rem 1rem;
+    border-radius: 2rem;
+    font-weight: 600;
+    color: white;
+    cursor: pointer;
+    transition: 0.2s;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.8rem;
+}
+
+.assign-character-btn:hover, .add-voice-actor-btn:hover {
+    transform: scale(1.02);
+    opacity: 0.9;
+}
+
+.characters-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 1rem;
+}
+
+.character-card {
+    background: #1a1f35;
+    border-radius: 1rem;
+    padding: 1rem;
+    border: 1px solid #2a2f48;
+    transition: all 0.2s;
+    cursor: pointer;
+}
+
+.character-card:hover {
+    transform: translateY(-3px);
+    border-color: #667eea;
+    background: #1f253f;
+}
+
+.character-avatar {
+    width: 80px;
+    height: 80px;
+    margin: 0 auto 0.8rem;
+    background: linear-gradient(135deg, #2c3f94, #1a266a);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 2rem;
+    color: #ffda88;
+    overflow: hidden;
+}
+
+.character-avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.character-name {
+    font-weight: 700;
+    text-align: center;
+    margin-bottom: 0.3rem;
+    color: white;
+}
+
+.character-actor {
+    font-size: 0.7rem;
+    text-align: center;
+    color: #7c8bd6;
+    margin-bottom: 0.5rem;
+}
+
+.character-stats {
+    font-size: 0.7rem;
+    text-align: center;
+    color: #a0a8c0;
+    display: flex;
+    justify-content: center;
+    gap: 0.8rem;
+}
+
+/* Модальное окно */
+.modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.8);
+    z-index: 10000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.modal-content {
+    background: #111521;
+    border-radius: 1.5rem;
+    max-width: 600px;
+    width: 90%;
+    max-height: 80vh;
+    overflow-y: auto;
+    border: 1px solid #2a2f48;
+}
+
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem 1.5rem;
+    border-bottom: 1px solid #2a2f48;
+    background: linear-gradient(135deg, #1a1f35, #111521);
+    border-radius: 1.5rem 1.5rem 0 0;
+}
+
+.modal-header h3 {
+    color: #cbd5ff;
+}
+
+.modal-close {
+    font-size: 1.5rem;
+    cursor: pointer;
+    color: #7c8bd6;
+    transition: color 0.2s;
+}
+
+.modal-close:hover {
+    color: #ef4444;
+}
+
+.modal-body {
+    padding: 1.5rem;
+}
+
+.character-info-modal {
+    background: #1a1f35;
+    border-radius: 0.8rem;
+    padding: 1rem;
+    margin-bottom: 1.5rem;
+}
+
+.voice-records-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.8rem;
+    margin-bottom: 1.5rem;
+}
+
+.voice-record-item {
+    background: #1a1f35;
+    border-radius: 0.8rem;
+    padding: 0.8rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+.voice-record-info {
+    flex: 1;
+}
+
+.voice-record-title {
+    font-weight: 600;
+    color: white;
+    margin-bottom: 0.2rem;
+}
+
+.voice-record-description {
+    font-size: 0.7rem;
+    color: #7c8bd6;
+}
+
+.voice-record-audio {
+    margin: 0.5rem 0;
+}
+
+.voice-record-audio audio {
+    max-width: 200px;
+    height: 30px;
+}
+
+.delete-voice-btn {
+    background: rgba(239, 68, 68, 0.15);
+    border: 1px solid #ef4444;
+    padding: 0.3rem 0.6rem;
+    border-radius: 0.5rem;
+    color: #f87171;
+    cursor: pointer;
+    font-size: 0.7rem;
+    transition: all 0.2s;
+}
+
+.delete-voice-btn:hover {
+    background: rgba(239, 68, 68, 0.3);
+}
+
+.add-voice-form {
+    background: #1a1f35;
+    border-radius: 0.8rem;
+    padding: 1rem;
+    margin-top: 1rem;
+}
+
+.add-voice-form h5 {
+    margin-bottom: 0.8rem;
+    color: #cbd5ff;
+}
+
+.form-input, .form-textarea {
+    width: 100%;
+    margin-bottom: 0.8rem;
+    padding: 0.6rem;
+    background: #0e1120;
+    border: 1px solid #2f365b;
+    border-radius: 0.5rem;
+    color: white;
+    font-size: 0.85rem;
+}
+
+.form-textarea {
+    resize: vertical;
+    min-height: 60px;
+}
+
+/* Форма создания персонажа (админ) */
+.modal-form {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.modal-form select {
+    background: #1a1f35;
+    border: 1px solid #2f365b;
+    border-radius: 0.5rem;
+    padding: 0.6rem;
+    color: white;
+}
+
+.modal-buttons {
+    display: flex;
+    gap: 0.8rem;
+    margin-top: 0.5rem;
+}
+
+.btn-secondary {
+    background: #475569;
+    border: none;
+    padding: 0.6rem 1rem;
+    border-radius: 0.5rem;
+    color: white;
+    cursor: pointer;
+}
+
+.btn-danger {
+    background: rgba(239, 68, 68, 0.15);
+    border: 1px solid #ef4444;
+    padding: 0.6rem 1rem;
+    border-radius: 0.5rem;
+    color: #f87171;
+    cursor: pointer;
+}
+
+@media (max-width: 768px) {
+    .voice-actors-layout {
+        flex-direction: column-reverse;
+    }
+
+    .characters-grid {
+        grid-template-columns: 1fr 1fr;
+    }
+}
+
+@media (max-width: 480px) {
+    .characters-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 768px) {
+    .stat-value {
+        font-size: 0.9rem;
+        white-space: normal;
+    }
+}
+
 @media (max-width: 600px) {
     .request-card {
         flex-direction: column;
@@ -1761,6 +2174,260 @@ audio {
     font-size: 0.7rem;
     font-style: italic;
 }
+
+/* ========== КНОПКИ ========== */
+.btn-primary {
+    background: linear-gradient(135deg, #22c55e, #16a34a);
+    border: none;
+    padding: 0.6rem 1.2rem;
+    border-radius: 0.8rem;
+    color: white;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.9rem;
+}
+
+.btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(34, 197, 94, 0.4);
+}
+
+.btn-primary:active {
+    transform: translateY(0);
+}
+
+.btn-secondary {
+    background: linear-gradient(135deg, #475569, #334155);
+    border: none;
+    padding: 0.6rem 1.2rem;
+    border-radius: 0.8rem;
+    color: white;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.9rem;
+}
+
+.btn-secondary:hover {
+    background: linear-gradient(135deg, #334155, #1e293b);
+    transform: translateY(-2px);
+}
+
+.btn-danger {
+    background: linear-gradient(135deg, #ef4444, #dc2626);
+    border: none;
+    padding: 0.6rem 1.2rem;
+    border-radius: 0.8rem;
+    color: white;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.9rem;
+}
+
+.btn-danger:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(239, 68, 68, 0.4);
+}
+
+.modal-buttons {
+    display: flex;
+    gap: 1rem;
+    justify-content: flex-end;
+    margin-top: 1rem;
+}
+
+.modal-close-btn {
+    background: none;
+    border: none;
+    color: #7c8bd6;
+    font-size: 1.5rem;
+    cursor: pointer;
+    transition: color 0.2s;
+    padding: 0;
+    line-height: 1;
+}
+
+/* ========== КРАСИВАЯ ФОРМА ЗАГРУЗКИ АУДИО ========== */
+.audio-upload-area {
+    margin-bottom: 1rem;
+}
+
+.audio-upload-label {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    background: linear-gradient(135deg, #3b4ecf, #562de0);
+    padding: 0.8rem;
+    border-radius: 0.8rem;
+    color: white;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-weight: 500;
+}
+
+.audio-upload-label:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(59, 78, 207, 0.4);
+}
+
+.audio-file-name {
+    margin-top: 0.5rem;
+    padding: 0.5rem;
+    background: rgba(34, 197, 94, 0.15);
+    border-radius: 0.5rem;
+    font-size: 0.75rem;
+    color: #4ade80;
+    text-align: center;
+}
+
+.character-info-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.8rem;
+    margin-bottom: 0.8rem;
+}
+
+.character-info-row i {
+    color: #667eea;
+    margin-top: 0.2rem;
+}
+
+.character-info-row p {
+    flex: 1;
+    color: #a0a8c0;
+    font-size: 0.85rem;
+}
+
+#adminCharacterActions {
+    display: flex;
+    gap: 0.8rem;
+    flex-wrap: wrap;
+    margin-top: 1rem;
+    padding-top: 1rem;
+    border-top: 1px solid #2a2f48;
+}
+
+.modal-close-btn:hover {
+    color: #ef4444;
+}
+
+/* Плашка "Все персонажи" */
+.all-characters-plate {
+    background: linear-gradient(135deg, #1a1f35, #111521);
+    border-radius: 0.8rem;
+    padding: 0.8rem;
+    display: flex;
+    align-items: center;
+    gap: 0.8rem;
+    margin-top: 1rem;
+    border: 1px solid #2a2f48;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.all-characters-plate:hover {
+    transform: translateX(4px);
+    border-color: #667eea;
+    background: #1f253f;
+}
+
+.all-characters-icon {
+    width: 48px;
+    height: 48px;
+    background: linear-gradient(135deg, #2c3f94, #1a266a);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.2rem;
+    color: #ffda88;
+}
+
+.all-characters-info {
+    flex: 1;
+}
+
+.all-characters-title {
+    font-weight: 700;
+    color: white;
+    margin-bottom: 0.2rem;
+}
+
+.all-characters-count {
+    font-size: 0.7rem;
+    color: #7c8bd6;
+}
+/* Загрузка изображения персонажа */
+.avatar-upload-area {
+    margin-bottom: 1rem;
+}
+
+.avatar-upload-label {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    background: linear-gradient(135deg, #3b4ecf, #562de0);
+    padding: 0.8rem;
+    border-radius: 0.8rem;
+    color: white;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-weight: 500;
+}
+
+.avatar-upload-label:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(59, 78, 207, 0.4);
+}
+
+.character-image-preview {
+    position: relative;
+    margin-top: 0.5rem;
+    display: inline-block;
+}
+
+.character-image-preview img {
+    width: 80px;
+    height: 80px;
+    object-fit: cover;
+    border-radius: 12px;
+    border: 2px solid #667eea;
+}
+
+.remove-image-btn {
+    position: absolute;
+    top: -8px;
+    right: -8px;
+    width: 20px;
+    height: 20px;
+    background: #ef4444;
+    border: none;
+    border-radius: 50%;
+    color: white;
+    font-size: 0.7rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.remove-image-btn:hover {
+    background: #dc2626;
+}
+
 
 /* Адаптив для мобильных */
 @media (max-width: 900px) {
