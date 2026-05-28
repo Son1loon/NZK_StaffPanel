@@ -9,6 +9,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.http.ResponseEntity;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
@@ -1411,6 +1412,41 @@ public class ApiController {
 
         ideaRepository.deleteById(id);
         return ResponseEntity.ok(Map.of("success", true));
+    }
+
+    @Scheduled(fixedRate = 600000) // каждые 10 минут
+    public void cleanOldActivities() {
+        long currentTime = System.currentTimeMillis();
+        long onlineThreshold = 120000; // 2 минуты - пользователь считается оффлайн
+
+        int before = userLastActivity.size();
+        userLastActivity.entrySet().removeIf(entry ->
+                (currentTime - entry.getValue()) > onlineThreshold
+        );
+        int after = userLastActivity.size();
+        System.out.println("🧹 Очищено активностей: " + (before - after) + ", осталось: " + after);
+    }
+
+    @Scheduled(fixedRate = 300000) // каждые 5 минут
+    public void memoryCleanup() {
+        // 1. Очищаем старые активности
+        long currentTime = System.currentTimeMillis();
+        long onlineThreshold = 120000; // 2 минуты
+        int before = userLastActivity.size();
+        userLastActivity.entrySet().removeIf(entry ->
+                (currentTime - entry.getValue()) > onlineThreshold
+        );
+
+        // 2. Выводим статистику
+        long freeMem = Runtime.getRuntime().freeMemory() / 1024 / 1024;
+        long totalMem = Runtime.getRuntime().totalMemory() / 1024 / 1024;
+        System.out.println("🧹 Очистка: активностей " + before + " → " + userLastActivity.size() +
+                ", память: " + freeMem + " MB свободно из " + totalMem + " MB");
+
+        // 3. Если памяти мало - просим GC
+        if (freeMem < 100) {
+            System.gc();
+        }
     }
 
 }

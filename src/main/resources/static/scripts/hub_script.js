@@ -842,7 +842,7 @@ async function sendHeartbeat() {
 function startHeartbeat() {
     if (heartbeatInterval) clearInterval(heartbeatInterval);
     sendHeartbeat();
-    heartbeatInterval = setInterval(sendHeartbeat, 30000);
+    heartbeatInterval = setInterval(sendHeartbeat, 120000);
 }
 
 function stopHeartbeat() {

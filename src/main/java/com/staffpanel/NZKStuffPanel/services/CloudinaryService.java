@@ -28,13 +28,19 @@ public class CloudinaryService {
 
     // Загрузка аватара пользователя
     public String uploadAvatar(MultipartFile file, Long userId) throws IOException {
-        Map<String, Object> params = ObjectUtils.asMap(
-                "public_id", "user_" + userId,
-                "folder", "nzk_staff/avatars",
-                "overwrite", true
-        );
-        Map result = cloudinary.uploader().upload(file.getBytes(), params);
-        return result.get("secure_url").toString();
+        byte[] bytes = file.getBytes(); // забираем в память
+        try {
+            Map<String, Object> params = ObjectUtils.asMap(
+                    "public_id", "user_" + userId,
+                    "folder", "nzk_staff/avatars",
+                    "overwrite", true
+            );
+            Map result = cloudinary.uploader().upload(bytes, params);
+            return result.get("secure_url").toString();
+        } finally {
+            bytes = null;
+            System.gc();
+        }
     }
 
     // Загрузка аудиофайла
@@ -133,4 +139,5 @@ public class CloudinaryService {
     public String getPublicIdFromUrl(String url) {
         return extractPublicIdFromUrl(url);
     }
+
 }
