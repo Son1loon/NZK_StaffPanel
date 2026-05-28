@@ -850,6 +850,149 @@
     }
 }
 
+/* ========== БЛОК ПОДДЕРЖКИ ========== */
+.support-message {
+    background: linear-gradient(135deg, #1a1f35, #111521);
+    border-radius: 1rem;
+    padding: 1.5rem;
+    text-align: center;
+    border: 1px solid #2a2f48;
+    transition: all 0.3s ease;
+    margin: 1rem 0;
+}
+
+.support-message:hover {
+    transform: translateY(-3px);
+    border-color: #667eea;
+    box-shadow: 0 8px 20px rgba(102, 126, 234, 0.15);
+}
+
+.support-message i {
+    font-size: 2.5rem;
+    color: #667eea;
+    margin-bottom: 0.8rem;
+    display: inline-block;
+}
+
+.support-message p {
+    color: #a0a8c0;
+    font-size: 0.9rem;
+    margin-bottom: 0.5rem;
+}
+
+.support-message a {
+    color: #667eea;
+    text-decoration: none;
+    font-weight: 600;
+    transition: color 0.2s ease;
+    word-break: break-all;
+}
+
+.support-message a:hover {
+    color: #8b9dff;
+    text-decoration: underline;
+}
+
+.support-message small {
+    font-size: 0.7rem;
+    color: #5a668a;
+    display: block;
+    margin-top: 0.5rem;
+}
+
+/* Альтернативный вариант с карточкой (более заметный) */
+.support-card {
+    background: linear-gradient(135deg, #1e243f, #161c30);
+    border-radius: 1rem;
+    padding: 1.5rem;
+    text-align: center;
+    border-left: 4px solid #667eea;
+    position: relative;
+    overflow: hidden;
+}
+
+.support-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 80px;
+    height: 80px;
+    background: radial-gradient(circle, rgba(102, 126, 234, 0.1) 0%, transparent 70%);
+    border-radius: 50%;
+}
+
+.support-card i {
+    font-size: 2rem;
+    color: #667eea;
+    margin-bottom: 0.8rem;
+}
+
+.support-card p {
+    color: #cbd5ff;
+    font-size: 0.9rem;
+    margin-bottom: 0.3rem;
+}
+
+.support-card a {
+    color: #8b9dff;
+    text-decoration: none;
+    font-weight: 600;
+    transition: all 0.2s;
+}
+
+.support-card a:hover {
+    color: #a78bfa;
+    text-decoration: underline;
+}
+
+.support-card small {
+    font-size: 0.7rem;
+    color: #7c8bd6;
+    display: block;
+    margin-top: 0.5rem;
+}
+
+/* Адаптив для мобильных */
+@media (max-width: 768px) {
+    .support-message {
+        padding: 1rem;
+    }
+
+    .support-message i {
+        font-size: 2rem;
+    }
+
+    .support-message p {
+        font-size: 0.8rem;
+    }
+
+    .support-message a {
+        font-size: 0.85rem;
+        word-break: break-all;
+    }
+}
+
+/* Анимация пульсации для иконки почты (опционально) */
+@keyframes emailPulse {
+    0% {
+        transform: scale(1);
+        opacity: 1;
+    }
+    50% {
+        transform: scale(1.1);
+        opacity: 0.8;
+    }
+    100% {
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+
+.support-message:hover i {
+    animation: emailPulse 0.5s ease;
+}
+
 @media (max-width: 480px) {
     .works-grid {
         grid-template-columns: 1fr;
