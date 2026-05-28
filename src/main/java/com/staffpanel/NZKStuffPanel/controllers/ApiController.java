@@ -1414,17 +1414,27 @@ public class ApiController {
         return ResponseEntity.ok(Map.of("success", true));
     }
 
-    @Scheduled(fixedRate = 600000) // каждые 10 минут
-    public void cleanOldActivities() {
+    @Scheduled(fixedRate = 60000) // каждую минуту (для теста)
+    public void forceCleanOldActivities() {
         long currentTime = System.currentTimeMillis();
-        long onlineThreshold = 120000; // 2 минуты - пользователь считается оффлайн
+        long onlineThreshold = 60000; // 1 минута
 
-        int before = userLastActivity.size();
-        userLastActivity.entrySet().removeIf(entry ->
-                (currentTime - entry.getValue()) > onlineThreshold
-        );
-        int after = userLastActivity.size();
-        System.out.println("🧹 Очищено активностей: " + (before - after) + ", осталось: " + after);
+        // Принудительная очистка
+        int oldSize = userLastActivity.size();
+
+        // Используем Iterator для гарантированного удаления
+        Iterator<Map.Entry<Long, Long>> iterator = userLastActivity.entrySet().iterator();
+        while (iterator.hasNext()) {
+            Map.Entry<Long, Long> entry = iterator.next();
+            if ((currentTime - entry.getValue()) > onlineThreshold) {
+                iterator.remove();
+            }
+        }
+
+        int newSize = userLastActivity.size();
+        if (oldSize != newSize) {
+            System.out.println("🔥 Очищено активностей: " + (oldSize - newSize) + " (было " + oldSize + ", стало " + newSize + ")");
+        }
     }
 
     @Scheduled(fixedRate = 300000) // каждые 5 минут
