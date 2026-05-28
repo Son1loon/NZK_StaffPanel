@@ -2537,7 +2537,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     initAudioUpload();
     initRegistrationForm();
     await getCurrentUserId();
-    // startHeartbeat();
+    startHeartbeat();
     await checkAdminRights();
     await loadHeaderAvatar();
     handleHashOnLoad();
