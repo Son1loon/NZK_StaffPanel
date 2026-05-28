@@ -2230,20 +2230,24 @@ async function saveScriptAssignees() {
 // ========== ИДЕИ ==========
 let currentIdeaType = 'BUILD';
 
-async function loadIdeas() {
+async function loadIdeas(page = 0) {
     const container = document.getElementById('ideasContainer');
     if (!container) return;
 
     try {
-        const response = await fetch('/api/ideas');
+        const response = await fetch(`/api/ideas?page=${page}&size=20`);
         if (!response.ok) {
             console.error('Ошибка загрузки идей, статус:', response.status);
             container.innerHTML = '<div class="error-message">❌ Ошибка загрузки идей</div>';
             return;
         }
 
-        let ideas = await response.json();
-        console.log('Загружено идей:', ideas.length);
+        const data = await response.json();
+        let ideas = data.content || [];
+        const totalPages = data.totalPages;
+        const currentPage = data.currentPage;
+
+        console.log('Загружено идей:', ideas.length, 'Страница:', currentPage + 1, 'из', totalPages);
 
         const isAdmin = window.userData.isAdmin;
 
@@ -2256,24 +2260,29 @@ async function loadIdeas() {
 
         // Обновляем бейдж с количеством pending идей
         if (isAdmin) {
-            const allIdeasResponse = await fetch('/api/ideas');
-            if (allIdeasResponse.ok) {
-                const allIdeas = await allIdeasResponse.json();
-                const pendingCount = allIdeas.filter(i => i.status === 'PENDING').length;
-                const pendingBadge = document.getElementById('pendingBadge');
-                if (pendingBadge) {
-                    pendingBadge.textContent = pendingCount;
-                    pendingBadge.style.display = pendingCount > 0 ? 'inline-flex' : 'none';
+            try {
+                const allIdeasResponse = await fetch('/api/ideas?size=1000');
+                if (allIdeasResponse.ok) {
+                    const allIdeasData = await allIdeasResponse.json();
+                    // Убедимся, что content существует и это массив
+                    const allIdeas = allIdeasData.content || [];
+                    const pendingCount = allIdeas.filter(i => i.status === 'PENDING').length;
+                    const pendingBadge = document.getElementById('pendingBadge');
+                    if (pendingBadge) {
+                        pendingBadge.textContent = pendingCount;
+                        pendingBadge.style.display = pendingCount > 0 ? 'inline-flex' : 'none';
+                    }
                 }
+            } catch (e) {
+                console.warn('Ошибка загрузки pending бейджа:', e);
             }
         }
 
-        if (ideas.length === 0) {
+        if (!ideas || ideas.length === 0) {
             container.innerHTML = '<div class="empty-state">✨ Нет идей в этой категории</div>';
             return;
         }
 
-        // ОДИН map, без вложенности!
         container.innerHTML = ideas.map(idea => {
             const typeIcon = idea.type === 'BUILD' ? '<i class="fas fa-hard-hat"></i>' : '<i class="fas fa-globe"></i>';
             const typeText = idea.type === 'BUILD' ? 'Идея для постройки' : 'Идея для улучшения сайта';
@@ -2284,11 +2293,8 @@ async function loadIdeas() {
                 <div class="idea-type-plate ${typeClass}" title="${typeText}">
                     ${typeIcon} ${typeText}
                 </div>
-
                 <div class="idea-title idea-title-ellipsis" title="${escapeHtml(idea.title)}">${escapeHtml(idea.title)}</div>
-
                 <div class="idea-description idea-description-ellipsis" title="${escapeHtml(idea.description)}">${escapeHtml(idea.description)}</div>
-
                 <div class="idea-meta">
                     <span class="idea-author"><i class="fas fa-user"></i> ${escapeHtml(idea.author)}</span>
                     <span class="idea-date"><i class="fas fa-calendar"></i> ${new Date(idea.createdAt).toLocaleDateString('ru-RU')}</span>
@@ -2298,7 +2304,6 @@ async function loadIdeas() {
                     </span>
                     ${idea.status !== 'APPROVED' ? `<span class="idea-status ${idea.status.toLowerCase()}">${idea.status === 'PENDING' ? 'На модерации' : 'Отклонено'}</span>` : ''}
                 </div>
-
                 ${isAdmin && idea.status === 'PENDING' ? `
                     <div class="idea-actions">
                         <button class="approve-idea-btn" onclick="approveIdea(${idea.id})" title="Одобрить">✅</button>
@@ -2314,6 +2319,22 @@ async function loadIdeas() {
             `;
         }).join('');
 
+        // Удаляем старую пагинацию
+        const existingPagination = document.querySelector('.pagination');
+        if (existingPagination) existingPagination.remove();
+
+        // Добавляем пагинацию
+        if (totalPages > 1) {
+            const paginationHtml = `
+                <div class="pagination" style="display: flex; justify-content: center; gap: 1rem; margin-top: 1.5rem;">
+                    <button ${currentPage === 0 ? 'disabled' : ''} onclick="loadIdeas(${currentPage - 1})" style="padding: 0.5rem 1rem; border-radius: 0.5rem; background: #1a1f35; border: 1px solid #2a2f48; color: white; cursor: pointer;">← Назад</button>
+                    <span style="padding: 0.5rem 1rem;">Страница ${currentPage + 1} из ${totalPages}</span>
+                    <button ${currentPage + 1 >= totalPages ? 'disabled' : ''} onclick="loadIdeas(${currentPage + 1})" style="padding: 0.5rem 1rem; border-radius: 0.5rem; background: #1a1f35; border: 1px solid #2a2f48; color: white; cursor: pointer;">Вперед →</button>
+                </div>
+            `;
+            container.insertAdjacentHTML('afterend', paginationHtml);
+        }
+
     } catch (error) {
         console.error('Ошибка загрузки идей:', error);
         container.innerHTML = '<div class="error-message">❌ Ошибка загрузки идей</div>';
@@ -2323,7 +2344,6 @@ async function loadIdeas() {
 function switchIdeaType(type) {
     currentIdeaType = type;
 
-    // Обновляем активный класс у вкладок
     document.querySelectorAll('.idea-tab').forEach(tab => {
         const tabType = tab.getAttribute('data-idea-type');
         if (tabType === type) {
@@ -2333,7 +2353,7 @@ function switchIdeaType(type) {
         }
     });
 
-    loadIdeas();
+    loadIdeas(0);  // ← сбрасывай на первую страницу при смене типа
 }
 
 // Лайк идеи (toggle)

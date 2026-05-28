@@ -6,6 +6,8 @@ import com.staffpanel.NZKStuffPanel.repository.*;
 import com.staffpanel.NZKStuffPanel.services.CloudinaryService;
 import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
@@ -18,6 +20,7 @@ import org.springframework.web.bind.annotation.*;
 import com.staffpanel.NZKStuffPanel.repository.CharacterRepository;
 import com.staffpanel.NZKStuffPanel.repository.VoiceRecordRepository;
 
+import org.springframework.data.domain.Pageable;
 import java.time.LocalDateTime;
 
 import jakarta.servlet.http.HttpServletRequest;
@@ -742,6 +745,7 @@ public class ApiController {
 
     // Получить всех персонажей (админ видит всех, актёр только своих)
     @GetMapping("/characters")
+    @Transactional
     public ResponseEntity<?> getCharacters(Authentication auth) {
         String username = auth.getName();
         boolean isAdmin = auth.getAuthorities().stream()
@@ -899,7 +903,6 @@ public class ApiController {
 
         Character character = characterOpt.get();
 
-        // ДОБАВЬ ЭТУ ПРОВЕРКУ
         // Если персонаж не закреплён ни за кем - только админ может смотреть
         if (character.getAssignedTo() == null && !isAdmin) {
             return ResponseEntity.status(403).body(Map.of("error", "Этот персонаж ещё не выдан актёру. Доступ только у администратора."));
@@ -1222,7 +1225,10 @@ public class ApiController {
 
     // Получить все идеи
     @GetMapping("/ideas")
-    public ResponseEntity<?> getIdeas(Authentication auth) {
+    @Transactional
+    public ResponseEntity<?> getIdeas(Authentication auth,
+                                      @RequestParam(defaultValue = "0") int page,
+                                      @RequestParam(defaultValue = "20") int size) {
         String username = auth.getName();
         boolean isAdmin = auth.getAuthorities().stream()
                 .anyMatch(granted -> granted.getAuthority().equals("ROLE_ADMIN"));
@@ -1231,15 +1237,17 @@ public class ApiController {
         Optional<User> currentUserOpt = userRepository.findByUsername(username);
         Long currentUserId = currentUserOpt.map(User::getId).orElse(null);
 
-        List<Idea> ideas;
+        Pageable pageable = PageRequest.of(page, size);
+        Page<Idea> ideasPage;
+
         if (isAdmin) {
-            ideas = ideaRepository.findAll();
+            ideasPage = ideaRepository.findAll(pageable);
         } else {
-            ideas = ideaRepository.findByStatus("APPROVED");
+            ideasPage = ideaRepository.findByStatus("APPROVED", pageable);
         }
 
         List<Map<String, Object>> result = new ArrayList<>();
-        for (Idea idea : ideas) {
+        for (Idea idea : ideasPage.getContent()) {
             Map<String, Object> ideaMap = new HashMap<>();
             ideaMap.put("id", idea.getId());
             ideaMap.put("title", idea.getTitle());
@@ -1261,7 +1269,15 @@ public class ApiController {
             result.add(ideaMap);
         }
 
-        return ResponseEntity.ok(result);
+        // Возвращаем также мета-информацию о пагинации
+        Map<String, Object> response = new HashMap<>();
+        response.put("content", result);
+        response.put("totalPages", ideasPage.getTotalPages());
+        response.put("totalElements", ideasPage.getTotalElements());
+        response.put("currentPage", page);
+        response.put("size", size);
+
+        return ResponseEntity.ok(response);
     }
 
     // Поставить/убрать лайк идее (toggle)
@@ -1318,16 +1334,13 @@ public class ApiController {
         return ResponseEntity.ok(stats);
     }
 
-    // Добавьте этот метод в ApiController (рядом с другими методами для идей):
-
     @PostMapping("/ideas")
     public ResponseEntity<?> createIdea(@RequestBody Map<String, String> data, Authentication auth) {
         String title = data.get("title");
         String description = data.get("description");
-        String type = data.get("type"); // "BUILD" или "SITE"
+        String type = data.get("type");
         String username = auth.getName();
 
-        // Валидация
         if (title == null || title.trim().isEmpty()) {
             return ResponseEntity.badRequest().body(Map.of("error", "Введите название идеи"));
         }
@@ -1338,13 +1351,12 @@ public class ApiController {
             return ResponseEntity.badRequest().body(Map.of("error", "Неверный тип идеи"));
         }
 
-        // Создаём идею
         Idea idea = new Idea();
         idea.setTitle(title);
         idea.setDescription(description);
         idea.setType(type);
         idea.setAuthor(username);
-        idea.setStatus("PENDING");  // На модерации
+        idea.setStatus("PENDING");
         idea.setLikesCount(0);
 
         ideaRepository.save(idea);
