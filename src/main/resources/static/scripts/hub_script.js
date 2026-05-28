@@ -747,7 +747,7 @@ async function loadTeamMembers() {
             const groupedUsers = { 'ADMIN': [], 'BUILDER': [], 'SCREENWRITER': [], 'VOICE_ACTOR': [], 'USER': [] };
             const roleIcons = { 'ADMIN': '<i class="fas fa-crown"></i>', 'BUILDER': '<i class="fas fa-hard-hat"></i>', 'SCREENWRITER': '<i class="fas fa-feather-alt"></i>', 'VOICE_ACTOR': '<i class="fas fa-microphone-alt"></i>', 'USER': '<i class="fas fa-user"></i>' };
             const roleColors = { 'ADMIN': 'admin', 'BUILDER': 'builder', 'SCREENWRITER': 'screenwriter', 'VOICE_ACTOR': 'voice-actor', 'USER': 'user' };
-            const roleNames = { 'ADMIN': '👑 Администраторы', 'BUILDER': '🏗️ Строители', 'SCREENWRITER': '✍️ Сценаристы', 'VOICE_ACTOR': '🎙️ Актёры озвучки', 'USER': '👤 Участники' };
+            const roleNames = { 'ADMIN': 'Администраторы', 'BUILDER': 'Строители', 'SCREENWRITER': 'Сценаристы', 'VOICE_ACTOR': 'Актёры озвучки', 'USER': 'Участники' };
             users.forEach(user => {
                 if (user.roles && user.roles.length > 0) {
                     if (user.roles.includes('ADMIN')) {
