@@ -43,13 +43,11 @@ async function checkAdminRights() {
                 const isAdmin = currentUser.roles.includes('ADMIN');
                 window.userData.isAdmin = isAdmin;
 
-                // Обновляем текст роли в хедере
                 const userRoleSpan = document.getElementById('userRoleSpan');
                 if (userRoleSpan) {
                     userRoleSpan.textContent = isAdmin ? 'Админ' : 'Сотрудник';
                 }
 
-                // ========== ВАЖНО: ПОКАЗЫВАЕМ/СКРЫВАЕМ АДМИНСКИЕ КНОПКИ В ХЕДЕРЕ ==========
                 const adminNavLinks = document.querySelectorAll('.nav-tab.admin-only');
                 adminNavLinks.forEach(link => {
                     if (isAdmin) {
@@ -68,7 +66,7 @@ async function checkAdminRights() {
     return window.userData.isAdmin;
 }
 
-// ========== ЗАГРУЗКА АВАТАРКИ В ХЕДЕР ==========
+// ========== ЗАГРУЗКА АВАТАРКИ ==========
 async function loadHeaderAvatar() {
     try {
         const response = await fetch('/api/current-user');
@@ -89,7 +87,6 @@ async function loadHeaderAvatar() {
     }
 }
 
-// ========== ЗАГРУЗКА АВАТАРКИ В ПРОФИЛЬ ==========
 async function loadProfileAvatar() {
     try {
         const response = await fetch('/api/current-user');
@@ -109,60 +106,94 @@ async function loadProfileAvatar() {
     }
 }
 
-// ========== ЗАГРУЗКА ДАННЫХ ПРОФИЛЯ ==========
-async function loadProfileData() {
-    await loadUserRoles();
-    await loadUserTasks();
-    await loadUserWorks();
-}
+async function saveAvatar(file) {
+    const formData = new FormData();
+    formData.append('avatar', file);
 
-async function loadUserRoles() {
+    const csrf = getCsrfToken();
+    const headers = {};
+    if (csrf) headers[csrf.header] = csrf.token;
+
     try {
-        const response = await fetch('/api/public-users');
+        const response = await fetch('/api/user/avatar', {
+            method: 'POST',
+            headers: headers,
+            body: formData
+        });
+
         if (response.ok) {
-            const users = await response.json();
-            const currentUser = window.userData.username;
-            const user = users.find(u => u.username === currentUser);
-            if (user && user.roles) {
-                const rolesList = document.getElementById('userRolesList');
-                const roleNames = {
-                    'ADMIN': '👑 Администратор',
-                    'BUILDER': '🏗️ Строитель',
-                    'SCREENWRITER': '✍️ Сценарист',
-                    'VOICE_ACTOR': '🎙️ Актёр озвучки',
-                    'USER': '👤 Участник'
-                };
-                const roleHtml = user.roles.map(role =>
-                    `<span class="role-tag role-${role.toLowerCase()}">${roleNames[role] || role}</span>`
-                ).join('');
-                rolesList.innerHTML = roleHtml;
-                showRoleSections(user.roles);
-            }
+            const data = await response.json();
+            const preview = document.getElementById('avatarPreview');
+            if (preview) preview.innerHTML = `<img src="${data.avatarUrl}?t=${Date.now()}" alt="Avatar">`;
+            await loadHeaderAvatar();
+            showNotification('✅ Аватар обновлён', 'success');
+        } else {
+            const error = await response.json();
+            showNotification(`❌ ${error.error || 'Ошибка'}`, 'error');
         }
     } catch (error) {
-        console.error('Ошибка загрузки ролей:', error);
+        console.error('Ошибка:', error);
+        showNotification('❌ Ошибка загрузки аватара', 'error');
     }
 }
 
-function showRoleSections(roles) {
-    const sections = {
-        'BUILDER': 'builderWorksContainer',
-        'SCREENWRITER': 'screenwriterWorksContainer',
-        'VOICE_ACTOR': 'voiceActorWorksContainer',
-    };
-    for (const sectionId of Object.values(sections)) {
-        const section = document.getElementById(sectionId);
-        if (section) section.style.display = 'none';
+function initAvatarUpload() {
+    const changeBtn = document.getElementById('changeAvatarBtn');
+    const uploadInput = document.getElementById('avatarUpload');
+
+    if (changeBtn && uploadInput) {
+        changeBtn.addEventListener('click', () => uploadInput.click());
+        uploadInput.addEventListener('change', (e) => {
+            if (e.target.files && e.target.files[0]) {
+                saveAvatar(e.target.files[0]);
+            }
+        });
     }
-    for (const role of roles) {
-        if (sections[role]) {
-            const section = document.getElementById(sections[role]);
-            if (section) section.style.display = 'block';
+}
+
+// ========== ЗАГРУЗКА СЦЕНАРИЕВ ПОЛЬЗОВАТЕЛЯ ==========
+async function loadUserScripts() {
+    const container = document.getElementById('userScriptsContainer');
+    if (!container) {
+        console.error('Контейнер userScriptsContainer не найден!');
+        return;
+    }
+
+    try {
+        const response = await fetch('/api/scripts');
+        if (response.ok) {
+            let scripts = await response.json();
+            const currentUser = window.userData.username;
+            scripts = scripts.filter(s => s.assignees && s.assignees.includes(currentUser));
+
+            console.log('Загружено сценариев:', scripts.length);
+
+            if (scripts.length === 0) {
+                container.innerHTML = '<div class="empty-state">📭 У вас нет активных сценариев</div>';
+                return;
+            }
+
+            container.innerHTML = scripts.map(script => `
+                <div class="work-card script-work-card">
+                    <div class="work-thumbnail">
+                        <i class="fas fa-file-alt"></i>
+                    </div>
+                    <div class="work-title">📄 ${escapeHtml(script.title)}</div>
+                    <div class="work-description">${escapeHtml(script.description?.substring(0, 80) || '')}</div>
+                    <div class="work-date">📅 ${new Date(script.createdAt).toLocaleDateString('ru-RU')}</div>
+                    <button class="open-script-btn" onclick="window.open('${escapeHtml(script.googleDocUrl)}', '_blank')">
+                        <i class="fas fa-external-link-alt"></i> Открыть
+                    </button>
+                </div>
+            `).join('');
         }
+    } catch (error) {
+        console.error('Ошибка загрузки сценариев:', error);
+        container.innerHTML = '<div class="error-message">❌ Ошибка загрузки</div>';
     }
 }
 
-// ========== ЗАГРУЗКА ЗАДАЧ ПОЛЬЗОВАТЕЛЯ (С РАЗДЕЛЕНИЕМ) ==========
+// ========== ЗАГРУЗКА ЗАДАЧ ПОЛЬЗОВАТЕЛЯ ==========
 async function loadUserTasks() {
     const container = document.getElementById('userTasksContainer');
     if (!container) return;
@@ -172,7 +203,6 @@ async function loadUserTasks() {
         if (response.ok) {
             const tasks = await response.json();
 
-            // Разделяем задачи на активные и завершённые
             const activeTasks = tasks.filter(t => t.status !== 'COMPLETED');
             const completedTasks = tasks.filter(t => t.status === 'COMPLETED');
 
@@ -232,7 +262,6 @@ async function loadUserTasks() {
                 </div>
             `;
 
-            // Добавляем обработчики для кнопок завершения задач
             document.querySelectorAll('.complete-task-btn').forEach(btn => {
                 btn.addEventListener('click', async () => {
                     const taskId = btn.getAttribute('data-id');
@@ -246,7 +275,6 @@ async function loadUserTasks() {
     }
 }
 
-// Функция для сворачивания/разворачивания аккордеона в профиле
 function toggleTasksAccordion(header) {
     const accordionItem = header.closest('.accordion-item');
     const body = accordionItem.querySelector('.accordion-body');
@@ -285,7 +313,7 @@ async function completeUserTask(taskId) {
 
         if (response.ok) {
             showNotification('✅ Задача выполнена!', 'success');
-            await loadUserTasks(); // Перезагружаем список
+            await loadUserTasks();
         } else {
             const data = await response.json();
             showNotification(`❌ ${data.error || 'Ошибка'}`, 'error');
@@ -296,104 +324,57 @@ async function completeUserTask(taskId) {
     }
 }
 
-// ========== ЗАГРУЗКА РАБОТ ПОЛЬЗОВАТЕЛЯ ==========
-async function loadUserWorks() {
-    await loadBuilderWorks();
-    await loadScreenwriterWorks();
-    await loadVoiceActorWorks();
-    await loadVoiceActorCharacters();
-    await loadAnimatorWorks();
-}
-
-// Открытие персонажа из профиля (перенаправляет на хаб)
-function openCharacterFromProfile(characterId) {
-    window.location.href = `/hub#voice-actors`;
-    // Сохраняем ID персонажа в sessionStorage, чтобы открыть его модал
-    sessionStorage.setItem('openCharacterId', characterId);
-}
-
-// Загрузка персонажей актёра (для раздела "Мои работы")
-async function loadVoiceActorCharacters() {
-    const container = document.querySelector('#voiceActorWorksContainer .works-grid');
-    if (!container) return;
-
+// ========== ЗАГРУЗКА РОЛЕЙ ==========
+async function loadUserRoles() {
     try {
-        const response = await fetch('/api/characters');
+        const response = await fetch('/api/public-users');
         if (response.ok) {
-            let characters = await response.json();
-            // Фильтруем только персонажей текущего пользователя
-            characters = characters.filter(c => c.assignedTo === window.userData.username);
-
-            if (characters.length === 0) {
-                container.innerHTML = '<div class="empty-state">У вас нет персонажей для озвучки</div>';
-                return;
-            }
-
-            container.innerHTML = characters.map(character => `
-                <div class="work-card character-work-card" onclick="openCharacterFromProfile(${character.id})">
-                    <div class="work-thumbnail">
-                        ${character.imageUrl ? `<img src="${character.imageUrl}" style="width: 50px; height: 50px; border-radius: 50%; object-fit: cover;">` : `<i class="fas fa-mask"></i>`}
-                    </div>
-                    <div class="work-title">${escapeHtml(character.name)}</div>
-                    <div class="work-date">🎙️ ${character.voiceRecordsCount || 0} озвучек</div>
-                </div>
-            `).join('');
-        }
-    } catch (error) {
-        console.error('Ошибка загрузки персонажей:', error);
-        container.innerHTML = '<div class="error-message">Ошибка загрузки персонажей</div>';
-    }
-}
-
-async function loadBuilderWorks() {
-    const container = document.querySelector('#builderWorksContainer .works-grid');
-    if (!container) return;
-    try {
-        const response = await fetch('/api/user/builds');
-        if (response.ok) {
-            const works = await response.json();
-            if (works.length > 0) {
-                container.innerHTML = works.map(work => `
-                    <div class="work-card">
-                        <div class="work-thumbnail"><i class="fas fa-building"></i></div>
-                        <div class="work-title">${escapeHtml(work.title)}</div>
-                        <div class="work-date">📅 ${work.createdAt || 'Недавно'}</div>
-                    </div>
-                `).join('');
-            } else {
-                container.innerHTML = '<div class="empty-state">Нет построек</div>';
+            const users = await response.json();
+            const currentUser = window.userData.username;
+            const user = users.find(u => u.username === currentUser);
+            if (user && user.roles) {
+                const rolesList = document.getElementById('userRolesList');
+                const roleNames = {
+                    'ADMIN': '👑 Администратор',
+                    'BUILDER': '🏗️ Строитель',
+                    'SCREENWRITER': '✍️ Сценарист',
+                    'VOICE_ACTOR': '🎙️ Актёр озвучки',
+                    'USER': '👤 Участник'
+                };
+                const roleHtml = user.roles.map(role =>
+                    `<span class="role-tag role-${role.toLowerCase()}">${roleNames[role] || role}</span>`
+                ).join('');
+                rolesList.innerHTML = roleHtml;
+                showRoleSections(user.roles);
             }
         }
     } catch (error) {
-        console.error('Ошибка загрузки построек:', error);
-        container.innerHTML = '<div class="error-message">Ошибка загрузки</div>';
+        console.error('Ошибка загрузки ролей:', error);
     }
 }
 
-async function loadScreenwriterWorks() {
-    const container = document.querySelector('#screenwriterWorksContainer .works-grid');
-    if (!container) return;
-    try {
-        const response = await fetch('/api/user/scripts');
-        if (response.ok) {
-            const works = await response.json();
-            if (works.length > 0) {
-                container.innerHTML = works.map(work => `
-                    <div class="work-card">
-                        <div class="work-thumbnail"><i class="fas fa-file-alt"></i></div>
-                        <div class="work-title">${escapeHtml(work.title)}</div>
-                        <div class="work-date">📅 ${work.createdAt || 'Недавно'}</div>
-                    </div>
-                `).join('');
-            } else {
-                container.innerHTML = '<div class="empty-state">Нет сценариев</div>';
+function showRoleSections(roles) {
+    const sections = {
+        'SCREENWRITER': 'screenwriterWorksContainer',
+        'VOICE_ACTOR': 'voiceActorWorksContainer',
+    };
+
+    for (const sectionId of Object.values(sections)) {
+        const section = document.getElementById(sectionId);
+        if (section) section.style.display = 'none';
+    }
+
+    for (const role of roles) {
+        if (sections[role]) {
+            const section = document.getElementById(sections[role]);
+            if (section) {
+                section.style.display = 'block';
             }
         }
-    } catch (error) {
-        console.error('Ошибка загрузки сценариев:', error);
     }
 }
 
+// ========== ЗАГРУЗКА ОСТАЛЬНЫХ РАБОТ ==========
 async function loadVoiceActorWorks() {
     const container = document.querySelector('#voiceActorWorksContainer .works-grid');
     if (!container) return;
@@ -416,6 +397,42 @@ async function loadVoiceActorWorks() {
         }
     } catch (error) {
         console.error('Ошибка загрузки аудио:', error);
+    }
+}
+
+async function loadVoiceActorCharacters() {
+    const container = document.querySelector('#voiceActorWorksContainer .works-grid');
+    if (!container) return;
+
+    try {
+        const response = await fetch('/api/characters');
+        if (response.ok) {
+            let characters = await response.json();
+            characters = characters.filter(c => c.assignedTo === window.userData.username);
+
+            if (characters.length === 0) {
+                return;
+            }
+
+            const existingContent = container.innerHTML;
+            const charactersHtml = characters.map(character => `
+                <div class="work-card character-work-card" onclick="openCharacterFromProfile(${character.id})">
+                    <div class="work-thumbnail">
+                        ${character.imageUrl ? `<img src="${character.imageUrl}" style="width: 50px; height: 50px; border-radius: 50%; object-fit: cover;">` : `<i class="fas fa-mask"></i>`}
+                    </div>
+                    <div class="work-title">${escapeHtml(character.name)}</div>
+                    <div class="work-date">🎙️ ${character.voiceRecordsCount || 0} озвучек</div>
+                </div>
+            `).join('');
+
+            if (existingContent.includes('Нет аудиозаписей')) {
+                container.innerHTML = charactersHtml;
+            } else {
+                container.innerHTML = existingContent + charactersHtml;
+            }
+        }
+    } catch (error) {
+        console.error('Ошибка загрузки персонажей:', error);
     }
 }
 
@@ -443,53 +460,24 @@ async function loadAnimatorWorks() {
     }
 }
 
-// ========== АВАТАР ==========
-async function saveAvatar(file) {
-    const formData = new FormData();
-    formData.append('avatar', file);
-
-    const csrf = getCsrfToken();
-    const headers = {};
-    if (csrf) headers[csrf.header] = csrf.token;
-
-    try {
-        const response = await fetch('/api/user/avatar', {
-            method: 'POST',
-            headers: headers,
-            body: formData
-        });
-
-        if (response.ok) {
-            const data = await response.json();
-            const preview = document.getElementById('avatarPreview');
-            if (preview) preview.innerHTML = `<img src="${data.avatarUrl}?t=${Date.now()}" alt="Avatar">`;
-
-            // Обновляем аватарку в хедере
-            await loadHeaderAvatar();
-
-            showNotification('✅ Аватар обновлён', 'success');
-        } else {
-            const error = await response.json();
-            showNotification(`❌ ${error.error || 'Ошибка'}`, 'error');
-        }
-    } catch (error) {
-        console.error('Ошибка:', error);
-        showNotification('❌ Ошибка загрузки аватара', 'error');
-    }
+function openCharacterFromProfile(characterId) {
+    window.location.href = `/hub#voice-actors`;
+    sessionStorage.setItem('openCharacterId', characterId);
 }
 
-function initAvatarUpload() {
-    const changeBtn = document.getElementById('changeAvatarBtn');
-    const uploadInput = document.getElementById('avatarUpload');
+// ========== ЗАГРУЗКА ВСЕХ ДАННЫХ ПРОФИЛЯ ==========
+async function loadUserWorks() {
+    await loadUserScripts();
+    // НЕ вызываем loadScreenwriterWorks() - она дублирует loadUserScripts()
+    await loadVoiceActorWorks();
+    await loadVoiceActorCharacters();
+    await loadAnimatorWorks();
+}
 
-    if (changeBtn && uploadInput) {
-        changeBtn.addEventListener('click', () => uploadInput.click());
-        uploadInput.addEventListener('change', (e) => {
-            if (e.target.files && e.target.files[0]) {
-                saveAvatar(e.target.files[0]);
-            }
-        });
-    }
+async function loadProfileData() {
+    await loadUserRoles();
+    await loadUserTasks();
+    await loadUserWorks();
 }
 
 // ========== ВКЛАДКИ ПРОФИЛЯ ==========
@@ -514,21 +502,17 @@ function initProfileTabs() {
     });
 }
 
-// ========== АДМИНСКИЕ ФУНКЦИИ-ЗАГЛУШКИ (для кнопок в хедере) ==========
-// Эти функции нужны, чтобы при клике на админские кнопки в хедере не было ошибок
+// ========== АДМИНСКИЕ ФУНКЦИИ-ЗАГЛУШКИ ==========
 async function loadRegistrationRequests() {
-    // Перенаправляем на страницу хаба с нужной вкладкой
     window.location.href = '/hub#registration-requests';
 }
 
 async function loadUsersManagement() {
-    // Перенаправляем на страницу хаба с нужной вкладкой
     window.location.href = '/hub#users-management';
 }
 
 // ========== ИНИЦИАЛИЗАЦИЯ ==========
 document.addEventListener('DOMContentLoaded', async () => {
-    // Проверяем права и показываем админские кнопки в хедере
     await checkAdminRights();
     await loadHeaderAvatar();
     await loadProfileAvatar();
@@ -537,12 +521,13 @@ document.addEventListener('DOMContentLoaded', async () => {
     initAvatarUpload();
     await loadProfileData();
 
-    // В конце DOMContentLoaded добавь:
     const openCharacterId = sessionStorage.getItem('openCharacterId');
     if (openCharacterId && window.location.pathname === '/hub') {
         sessionStorage.removeItem('openCharacterId');
         setTimeout(() => {
-            openCharacterModal(parseInt(openCharacterId));
+            if (typeof openCharacterModal === 'function') {
+                openCharacterModal(parseInt(openCharacterId));
+            }
         }, 500);
     }
 });

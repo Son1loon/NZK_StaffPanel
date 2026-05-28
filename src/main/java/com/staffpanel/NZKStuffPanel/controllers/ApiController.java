@@ -1,8 +1,7 @@
 package com.staffpanel.NZKStuffPanel.controllers;
 
-import com.staffpanel.NZKStuffPanel.models.RegistrationRequest;
-import com.staffpanel.NZKStuffPanel.models.Role;
-import com.staffpanel.NZKStuffPanel.models.User;
+import com.staffpanel.NZKStuffPanel.models.*;
+import com.staffpanel.NZKStuffPanel.models.Character;
 import com.staffpanel.NZKStuffPanel.repository.*;
 import com.staffpanel.NZKStuffPanel.services.CloudinaryService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -15,9 +14,6 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
 import org.springframework.web.bind.annotation.*;
-import com.staffpanel.NZKStuffPanel.models.Task;
-import com.staffpanel.NZKStuffPanel.models.Character;
-import com.staffpanel.NZKStuffPanel.models.VoiceRecord;
 import com.staffpanel.NZKStuffPanel.repository.CharacterRepository;
 import com.staffpanel.NZKStuffPanel.repository.VoiceRecordRepository;
 
@@ -44,6 +40,7 @@ public class ApiController {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
     }
+
 
     // ========== СТАТИСТИКА ==========
     @GetMapping("/stats")
@@ -190,6 +187,17 @@ public class ApiController {
         }
 
         User user = userOpt.get();
+
+        // Сначала удаляем связи в таблице script_assignees
+        List<Script> scripts = scriptRepository.findAll();
+        for (Script script : scripts) {
+            if (script.getAssignees().remove(user)) {
+                scriptRepository.save(script);
+            }
+        }
+
+        // ИЛИ прямой SQL запрос:
+        // scriptAssigneesRepository.deleteByUserId(id);
 
         // Удаляем аватар из Cloudinary
         if (user.getAvatar() != null && !user.getAvatar().isEmpty()) {
@@ -1050,6 +1058,164 @@ public class ApiController {
         } catch (IOException e) {
             return ResponseEntity.badRequest().body(Map.of("error", "Ошибка загрузки изображения"));
         }
+    }
+
+    // ========== СЦЕНАРИИ ==========
+    @Autowired
+    private ScriptRepository scriptRepository;
+
+    // Получить всех сценаристов
+    @GetMapping("/screenwriters")
+    public ResponseEntity<?> getScreenwriters() {
+        List<User> allUsers = userRepository.findAll();
+        List<Map<String, Object>> screenwriters = new ArrayList<>();
+
+        for (User user : allUsers) {
+            boolean isScreenwriter = user.getRoles().stream()
+                    .anyMatch(role -> role.name().equals("ROLE_SCREENWRITER"));
+
+            if (isScreenwriter) {
+                Map<String, Object> writerMap = new HashMap<>();
+                writerMap.put("id", user.getId());
+                writerMap.put("username", user.getUsername());
+                writerMap.put("avatar", user.getAvatar());
+
+                long activeScripts = scriptRepository.findByAssigneeUsername(user.getUsername()).size();
+                writerMap.put("activeScriptsCount", activeScripts);
+
+                screenwriters.add(writerMap);
+            }
+        }
+        return ResponseEntity.ok(screenwriters);
+    }
+
+    // Получить сценарии
+    @GetMapping("/scripts")
+    public ResponseEntity<?> getScripts(Authentication auth) {
+        String username = auth.getName();
+        boolean isAdmin = auth.getAuthorities().stream()
+                .anyMatch(granted -> granted.getAuthority().equals("ROLE_ADMIN"));
+
+        List<Script> scripts;
+        if (isAdmin) {
+            scripts = scriptRepository.findAll();
+        } else {
+            scripts = scriptRepository.findByAssigneeUsername(username);
+        }
+
+        List<Map<String, Object>> result = new ArrayList<>();
+        for (Script script : scripts) {
+            Map<String, Object> scriptMap = new HashMap<>();
+            scriptMap.put("id", script.getId());
+            scriptMap.put("title", script.getTitle());
+            scriptMap.put("description", script.getDescription());
+            scriptMap.put("googleDocUrl", script.getGoogleDocUrl());
+            scriptMap.put("assignees", script.getAssignees().stream()
+                    .map(User::getUsername).collect(Collectors.toList()));
+            scriptMap.put("createdBy", script.getCreatedBy());
+            scriptMap.put("createdAt", script.getCreatedAt());
+            scriptMap.put("status", script.getStatus());
+            result.add(scriptMap);
+        }
+        return ResponseEntity.ok(result);
+    }
+
+    // Создать сценарий (только админ)
+    @PostMapping("/admin/scripts")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<?> createScript(@RequestBody Map<String, Object> data, Authentication auth) {
+        String title = (String) data.get("title");
+        String description = (String) data.get("description");
+        String googleDocUrl = (String) data.get("googleDocUrl");
+        @SuppressWarnings("unchecked")
+        List<String> assigneeUsernames = (List<String>) data.get("assignees");
+        String currentUser = auth.getName();
+
+        if (title == null || title.trim().isEmpty()) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Введите название сценария"));
+        }
+        if (googleDocUrl == null || googleDocUrl.trim().isEmpty()) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Укажите ссылку на Google документ"));
+        }
+
+        Script script = new Script();
+        script.setTitle(title);
+        script.setDescription(description != null ? description : "");
+        script.setGoogleDocUrl(googleDocUrl);
+        script.setCreatedBy(currentUser);
+        script.setStatus("ACTIVE");
+
+        // Добавляем сценаристов
+        if (assigneeUsernames != null && !assigneeUsernames.isEmpty()) {
+            Set<User> assignees = new HashSet<>();
+            for (String username : assigneeUsernames) {
+                userRepository.findByUsername(username).ifPresent(assignees::add);
+            }
+            script.setAssignees(assignees);
+        }
+
+        scriptRepository.save(script);
+        return ResponseEntity.ok(Map.of("success", "Сценарий создан", "scriptId", script.getId()));
+    }
+
+    // Удалить сценарий (только админ)
+    @DeleteMapping("/admin/scripts/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<?> deleteScript(@PathVariable Long id) {
+        Optional<Script> scriptOpt = scriptRepository.findById(id);
+        if (scriptOpt.isEmpty()) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Сценарий не найден"));
+        }
+        scriptRepository.deleteById(id);
+        return ResponseEntity.ok(Map.of("success", "Сценарий удалён"));
+    }
+
+    // Получить сценарий по ID (для редактирования)
+    @GetMapping("/admin/scripts/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<?> getScriptById(@PathVariable Long id) {
+        Optional<Script> scriptOpt = scriptRepository.findById(id);
+        if (scriptOpt.isEmpty()) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Сценарий не найден"));
+        }
+
+        Script script = scriptOpt.get();
+        Map<String, Object> result = new HashMap<>();
+        result.put("id", script.getId());
+        result.put("title", script.getTitle());
+        result.put("description", script.getDescription());
+        result.put("googleDocUrl", script.getGoogleDocUrl());
+        result.put("assignees", script.getAssignees().stream()
+                .map(User::getUsername).collect(Collectors.toList()));
+
+        return ResponseEntity.ok(result);
+    }
+
+    // Обновить сценаристов сценария (админ)
+    @PutMapping("/admin/scripts/{id}/assignees")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<?> updateScriptAssignees(@PathVariable Long id, @RequestBody Map<String, Object> data) {
+        @SuppressWarnings("unchecked")
+        List<String> assigneeUsernames = (List<String>) data.get("assignees");
+
+        Optional<Script> scriptOpt = scriptRepository.findById(id);
+        if (scriptOpt.isEmpty()) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Сценарий не найден"));
+        }
+
+        Script script = scriptOpt.get();
+        Set<User> assignees = new HashSet<>();
+
+        if (assigneeUsernames != null && !assigneeUsernames.isEmpty()) {
+            for (String username : assigneeUsernames) {
+                userRepository.findByUsername(username).ifPresent(assignees::add);
+            }
+        }
+
+        script.setAssignees(assignees);
+        scriptRepository.save(script);
+
+        return ResponseEntity.ok(Map.of("success", "Сценаристы обновлены"));
     }
 
 }

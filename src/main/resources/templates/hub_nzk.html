@@ -219,7 +219,7 @@
 			</div>
 		</div>
 
-		<!-- Панель 4: Идеи построек -->
+		<!-- Панель 4: Идеи -->
 		<div class="tab-content" id="ideas-tab">
 			<div class="panel-header">
 				<h2><i class="fas fa-lightbulb"></i> Банк идей построек</h2>
@@ -230,12 +230,92 @@
 			<div id="ideasContainer">...</div>
 		</div>
 
-		<!-- Панель 5: Звукоматериал -->
-		<div class="tab-content" id="audio-tab">
+		<!-- Панель 5: Сценарии -->
+		<div class="tab-content" id="scripts-tab">  <!-- поменяй id с audio-tab на scripts-tab -->
 			<div class="panel-header">
-				<h2><i class="fas fa-head-side-headphones"></i> Полная библиотека звуков</h2>
+				<h2><i class="fas fa-file-alt"></i> Сценаристы и сценарии</h2>
+				<button class="add-script-btn admin-only" id="addScriptBtn" style="display: none;">
+					<i class="fas fa-plus"></i> Добавить сценарий
+				</button>
 			</div>
-			<div id="audioLibraryContainer">...</div>
+
+			<div class="scripts-layout">
+				<!-- Левая колонка - список сценаристов -->
+				<div class="scripts-sidebar">
+					<h3><i class="fas fa-users"></i> Сценаристы</h3>
+					<div id="screenwritersList" class="screenwriters-list-container">
+						<div class="loading-spinner">Загрузка сценаристов...</div>
+					</div>
+				</div>
+
+				<!-- Правая колонка - список сценариев -->
+				<div class="scripts-content">
+					<div class="scripts-header">
+						<h3><i class="fas fa-scroll"></i> Сценарии</h3>
+					</div>
+					<div id="scriptsList" class="scripts-grid">
+						<div class="loading-spinner">Загрузка сценариев...</div>
+					</div>
+				</div>
+			</div>
+		</div>
+
+		<!-- Модальное окно для создания сценария -->
+		<div id="scriptModal" class="modal" style="display: none;">
+			<div class="modal-content">
+				<div class="modal-header">
+					<h3 id="scriptModalTitle"><i class="fas fa-plus"></i> Добавить сценарий</h3>
+					<button class="modal-close-btn" onclick="closeScriptModal()">&times;</button>
+				</div>
+				<div class="modal-body">
+					<div class="modal-form">
+						<input type="text" id="scriptTitle" placeholder="Название сценария *" class="form-input">
+						<textarea id="scriptDescription" placeholder="Описание сценария" class="form-textarea"></textarea>
+						<input type="url" id="scriptGoogleDocUrl" placeholder="Ссылка на Google Документ *" class="form-input">
+
+						<label style="color: #a0a8c0; margin-bottom: 0.5rem; display: block;">
+							<i class="fas fa-users"></i> Выбрать сценаристов (можно несколько):
+						</label>
+						<div class="multi-select-container">
+							<div id="scriptAssigneeCheckboxes" class="checkboxes-group">
+								<!-- Чекбоксы будут добавлены через JS -->
+							</div>
+						</div>
+
+						<div class="modal-buttons">
+							<button class="btn-primary" onclick="saveScript()">Сохранить</button>
+							<button class="btn-secondary" onclick="closeScriptModal()">Отмена</button>
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
+
+		<!-- Модальное окно для редактирования сценаристов -->
+		<div id="editScriptModal" class="modal" style="display: none;">
+			<div class="modal-content">
+				<div class="modal-header">
+					<h3 id="editScriptModalTitle"><i class="fas fa-edit"></i> Редактировать сценарий</h3>
+					<button class="modal-close-btn" onclick="closeEditScriptModal()">&times;</button>
+				</div>
+				<div class="modal-body">
+					<div class="modal-form">
+						<label style="color: #a0a8c0; margin-bottom: 0.5rem; display: block;">
+							<i class="fas fa-users"></i> Выбрать сценаристов (можно несколько):
+						</label>
+						<div class="multi-select-container">
+							<div id="editScriptAssigneeCheckboxes" class="checkboxes-group">
+								<!-- Чекбоксы будут добавлены через JS -->
+							</div>
+						</div>
+						<input type="hidden" id="editScriptId">
+						<div class="modal-buttons">
+							<button class="btn-primary" onclick="saveScriptAssignees()">Сохранить</button>
+							<button class="btn-secondary" onclick="closeEditScriptModal()">Отмена</button>
+						</div>
+					</div>
+				</div>
+			</div>
 		</div>
 
 		<!-- Панель: Заявки на регистрацию (только для админов) -->

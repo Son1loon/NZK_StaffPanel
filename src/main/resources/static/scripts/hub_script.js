@@ -66,21 +66,22 @@ async function loadTabData(tabId) {
             await loadBuildersList();
             await loadTasks();
             break;
+        case 'voice-actors':
+            await loadVoiceActors();
+            await loadCharacters();
+            break;
         case 'ideas':
             await loadIdeas();
             break;
-        case 'audio':
-            await loadAudioLibrary();
+        case 'scripts':      // <-- ДОБАВЬ ЭТОТ case
+            await loadScreenwriters();
+            await loadScripts();
             break;
         case 'users-management':
             await loadUsersManagement();
             break;
         case 'registration-requests':
             await loadRegistrationRequests();
-            break;
-        case 'voice-actors':
-            await loadVoiceActors();
-            await loadCharacters();
             break;
     }
 }
@@ -1948,6 +1949,317 @@ document.getElementById('unassignCharacterBtn')?.addEventListener('click', () =>
 document.getElementById('reassignCharacterBtn')?.addEventListener('click', openReassignModal);
 document.getElementById('deleteCharacterBtn')?.addEventListener('click', deleteCharacter);
 
+// ========== СЦЕНАРИИ ==========
+let currentSelectedScreenwriter = null;
+
+// Загрузка сценаристов
+async function loadScreenwriters() {
+    const container = document.getElementById('screenwritersList');
+    if (!container) return;
+
+    try {
+        const response = await fetch('/api/screenwriters');
+        if (response.ok) {
+            const writers = await response.json();
+            if (writers.length === 0) {
+                container.innerHTML = '<div class="empty-state">Нет сценаристов</div>';
+                return;
+            }
+
+            container.innerHTML = writers.map(writer => `
+                <div class="screenwriter-card" data-writer="${writer.username}" onclick="selectScreenwriter('${escapeHtml(writer.username)}')">
+                    <div class="screenwriter-avatar">
+                        ${writer.avatar ? `<img src="${writer.avatar}?t=${Date.now()}" alt="Avatar">` : `<i class="fas fa-feather-alt"></i>`}
+                    </div>
+                    <div class="screenwriter-info">
+                        <div class="screenwriter-name">${escapeHtml(writer.username)}</div>
+                        <div class="screenwriter-stats">
+                            <i class="fas fa-scroll"></i> ${writer.activeScriptsCount || 0} активных сценариев
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+    } catch (error) {
+        console.error('Ошибка загрузки сценаристов:', error);
+        container.innerHTML = '<div class="error-message">Ошибка загрузки</div>';
+    }
+}
+
+function selectScreenwriter(username) {
+    currentSelectedScreenwriter = username;
+
+    document.querySelectorAll('.screenwriter-card').forEach(card => {
+        if (card.getAttribute('data-writer') === username) {
+            card.classList.add('active');
+        } else {
+            card.classList.remove('active');
+        }
+    });
+
+    loadScripts(username);
+}
+
+function openScript(url) {
+    window.open(url, '_blank');
+}
+
+// Открытие модального окна создания сценария
+async function openCreateScriptModal() {
+    const response = await fetch('/api/screenwriters');
+    const writers = await response.json();
+
+    const container = document.getElementById('scriptAssigneeCheckboxes');
+    container.innerHTML = writers.map(writer => `
+        <div class="checkbox-item" onclick="toggleCheckbox(this, '${escapeHtml(writer.username)}')">
+            <input type="checkbox" id="writer_${escapeHtml(writer.username)}" value="${escapeHtml(writer.username)}">
+            <label for="writer_${escapeHtml(writer.username)}">${escapeHtml(writer.username)}</label>
+            <span class="checkbox-badge">${writer.activeScriptsCount || 0} сценариев</span>
+        </div>
+    `).join('');
+
+    document.getElementById('scriptModalTitle').innerHTML = '<i class="fas fa-plus"></i> Добавить сценарий';
+    document.getElementById('scriptTitle').value = '';
+    document.getElementById('scriptDescription').value = '';
+    document.getElementById('scriptGoogleDocUrl').value = '';
+    document.getElementById('scriptModal').style.display = 'flex';
+}
+
+function toggleCheckbox(div, username) {
+    const checkbox = div.querySelector('input[type="checkbox"]');
+    if (checkbox) {
+        checkbox.checked = !checkbox.checked;
+    }
+}
+
+// Получение выбранных сценаристов
+function getSelectedScreenwriters() {
+    const checkboxes = document.querySelectorAll('#scriptAssigneeCheckboxes input[type="checkbox"]:checked');
+    return Array.from(checkboxes).map(cb => cb.value);
+}
+
+function closeScriptModal() {
+    const modal = document.getElementById('scriptModal');
+    if (modal) {
+        modal.style.display = 'none';
+    }
+}
+
+async function saveScript() {
+    const title = document.getElementById('scriptTitle').value.trim();
+    const description = document.getElementById('scriptDescription').value.trim();
+    const googleDocUrl = document.getElementById('scriptGoogleDocUrl').value.trim();
+    const assignees = getSelectedScreenwriters();
+
+    if (!title) {
+        showNotification('❌ Введите название сценария', 'error');
+        return;
+    }
+    if (!googleDocUrl) {
+        showNotification('❌ Укажите ссылку на Google документ', 'error');
+        return;
+    }
+    if (assignees.length === 0) {
+        showNotification('❌ Выберите хотя бы одного сценариста', 'error');
+        return;
+    }
+
+    const csrf = getCsrfToken();
+    const headers = { 'Content-Type': 'application/json' };
+    if (csrf) headers[csrf.header] = csrf.token;
+
+    try {
+        const response = await fetch('/api/admin/scripts', {
+            method: 'POST',
+            headers: headers,
+            body: JSON.stringify({ title, description, googleDocUrl, assignees })
+        });
+
+        const data = await response.json();
+
+        if (response.ok) {
+            showNotification('✅ Сценарий создан', 'success');
+            closeScriptModal();
+            await loadScripts(currentSelectedScreenwriter);
+            await loadScreenwriters();
+        } else {
+            showNotification(`❌ ${data.error || 'Ошибка'}`, 'error');
+        }
+    } catch (error) {
+        console.error('Ошибка:', error);
+        showNotification('❌ Ошибка соединения', 'error');
+    }
+}
+
+// Обновлённая загрузка сценариев с отображением нескольких авторов
+async function loadScripts(filterWriter = null) {
+    const container = document.getElementById('scriptsList');
+    if (!container) return;
+
+    try {
+        const response = await fetch('/api/scripts');
+        if (response.ok) {
+            let scripts = await response.json();
+            const currentUser = window.userData.username;
+            const isAdmin = window.userData.isAdmin;
+
+            // Фильтруем сценарии: админ видит все, сценарист только свои
+            if (!isAdmin) {
+                scripts = scripts.filter(s => s.assignees?.includes(currentUser));
+            }
+
+            if (filterWriter && !isAdmin) {
+                scripts = scripts.filter(s => s.assignees?.includes(filterWriter));
+            }
+
+            if (scripts.length === 0) {
+                container.innerHTML = '<div class="empty-state">Нет сценариев</div>';
+                return;
+            }
+
+            container.innerHTML = scripts.map(script => `
+                <div class="script-card">
+                    <div class="script-title">
+                        <span>📄 ${escapeHtml(script.title)}</span>
+                        <div class="script-actions">
+                            <button class="open-script-btn" onclick="window.open('${escapeHtml(script.googleDocUrl)}', '_blank')">
+                                <i class="fas fa-external-link-alt"></i> Открыть
+                            </button>
+                            ${isAdmin ? `
+                                <button class="edit-script-btn" onclick="openEditScriptModal(${script.id})" title="Редактировать сценаристов">
+                                    <i class="fas fa-users"></i>
+                                </button>
+                                <button class="delete-script-btn" onclick="deleteScript(${script.id})" title="Удалить">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            ` : ''}
+                        </div>
+                    </div>
+                    <div class="script-description">${escapeHtml(script.description?.substring(0, 100) || '')}</div>
+                    <div class="script-meta">
+                        <span><i class="fas fa-users"></i> ${script.assignees?.join(', ') || 'Не назначен'}</span>
+                        <span><i class="fas fa-calendar"></i> ${new Date(script.createdAt).toLocaleDateString('ru-RU')}</span>
+                    </div>
+                </div>
+            `).join('');
+        }
+    } catch (error) {
+        console.error('Ошибка загрузки сценариев:', error);
+        container.innerHTML = '<div class="error-message">Ошибка загрузки</div>';
+    }
+}
+
+// Удаление сценария
+async function deleteScript(scriptId) {
+    if (!confirm('Удалить этот сценарий? Это действие необратимо!')) return;
+
+    const csrf = getCsrfToken();
+    const headers = {};
+    if (csrf) headers[csrf.header] = csrf.token;
+
+    try {
+        const response = await fetch(`/api/admin/scripts/${scriptId}`, {
+            method: 'DELETE',
+            headers: headers
+        });
+
+        if (response.ok) {
+            showNotification('✅ Сценарий удалён', 'success');
+            await loadScripts(currentSelectedScreenwriter);
+            await loadScreenwriters();
+        } else {
+            const data = await response.json();
+            showNotification(`❌ ${data.error || 'Ошибка'}`, 'error');
+        }
+    } catch (error) {
+        console.error('Ошибка:', error);
+        showNotification('❌ Ошибка соединения', 'error');
+    }
+}
+
+// Открытие модального окна редактирования сценаристов
+async function openEditScriptModal(scriptId) {
+    // Загружаем информацию о сценарии
+    const scriptResponse = await fetch(`/api/admin/scripts/${scriptId}`);
+    const script = await scriptResponse.json();
+
+    // Загружаем всех сценаристов
+    const writersResponse = await fetch('/api/screenwriters');
+    const writers = await writersResponse.json();
+
+    const container = document.getElementById('editScriptAssigneeCheckboxes');
+    const currentAssignees = script.assignees || [];
+
+    container.innerHTML = writers.map(writer => `
+        <div class="checkbox-item" onclick="toggleEditCheckbox(this, '${escapeHtml(writer.username)}')">
+            <input type="checkbox" id="edit_writer_${escapeHtml(writer.username)}"
+                   value="${escapeHtml(writer.username)}"
+                   ${currentAssignees.includes(writer.username) ? 'checked' : ''}>
+            <label for="edit_writer_${escapeHtml(writer.username)}">${escapeHtml(writer.username)}</label>
+            <span class="checkbox-badge">${writer.activeScriptsCount || 0} сценариев</span>
+        </div>
+    `).join('');
+
+    document.getElementById('editScriptId').value = scriptId;
+    document.getElementById('editScriptModalTitle').innerHTML = `<i class="fas fa-edit"></i> Редактировать сценарий: ${escapeHtml(script.title)}`;
+    document.getElementById('editScriptModal').style.display = 'flex';
+}
+
+function toggleEditCheckbox(div, username) {
+    const checkbox = div.querySelector('input[type="checkbox"]');
+    if (checkbox) {
+        checkbox.checked = !checkbox.checked;
+    }
+}
+
+function closeEditScriptModal() {
+    const modal = document.getElementById('editScriptModal');
+    if (modal) {
+        modal.style.display = 'none';
+    }
+}
+
+function getSelectedEditScreenwriters() {
+    const checkboxes = document.querySelectorAll('#editScriptAssigneeCheckboxes input[type="checkbox"]:checked');
+    return Array.from(checkboxes).map(cb => cb.value);
+}
+
+async function saveScriptAssignees() {
+    const scriptId = document.getElementById('editScriptId').value;
+    const assignees = getSelectedEditScreenwriters();
+
+    if (assignees.length === 0) {
+        showNotification('❌ Выберите хотя бы одного сценариста', 'error');
+        return;
+    }
+
+    const csrf = getCsrfToken();
+    const headers = { 'Content-Type': 'application/json' };
+    if (csrf) headers[csrf.header] = csrf.token;
+
+    try {
+        const response = await fetch(`/api/admin/scripts/${scriptId}/assignees`, {
+            method: 'PUT',
+            headers: headers,
+            body: JSON.stringify({ assignees })
+        });
+
+        const data = await response.json();
+
+        if (response.ok) {
+            showNotification('✅ Сценаристы обновлены', 'success');
+            closeEditScriptModal();
+            await loadScripts(currentSelectedScreenwriter);
+            await loadScreenwriters();
+        } else {
+            showNotification(`❌ ${data.error || 'Ошибка'}`, 'error');
+        }
+    } catch (error) {
+        console.error('Ошибка:', error);
+        showNotification('❌ Ошибка соединения', 'error');
+    }
+}
+
 // ========== ИНИЦИАЛИЗАЦИЯ ==========
 document.addEventListener('DOMContentLoaded', async () => {
     initTabs();
@@ -1976,6 +2288,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Обработчики для админских кнопок
     document.getElementById('addCharacterBtn')?.addEventListener('click', openCreateCharacterModal);
     document.getElementById('assignCharacterBtn')?.addEventListener('click', openAssignCharacterModal);
+    document.getElementById('addScriptBtn')?.addEventListener('click', openCreateScriptModal);
 
     // Закрытие модального окна при клике на крестик или вне окна
     document.addEventListener('click', (e) => {
