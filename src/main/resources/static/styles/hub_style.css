@@ -188,15 +188,25 @@ body {
     color: #ffda88;
 }
 
+.stat-info {
+    flex: 1;
+}
+
 .stat-value {
-    font-size: 1.8rem;
+    font-size: 1.5rem;
     font-weight: 800;
-    line-height: 1;
+    line-height: 1.2;
 }
 
 .stat-label {
-    font-size: 0.75rem;
+    font-size: 0.7rem;
     color: #7c8bd6;
+}
+
+.stat-sub {
+    font-size: 0.65rem;
+    color: #5a668a;
+    margin-top: 0.2rem;
 }
 
 /* ========== ПАНЕЛИ ========== */
@@ -356,22 +366,152 @@ audio {
     gap: 1.2rem;
 }
 
+/* ========== ОПТИМИЗАЦИЯ ДЛЯ ДЛИННОГО ТЕКСТА В КАРТОЧКАХ ИДЕЙ ========== */
+
+/* Карточка идеи - фиксированная высота с прокруткой при необходимости */
 .idea-card {
-    background: #12172e;
-    border-radius: 1rem;
-    padding: 1rem;
-    border: 1px solid #293052;
+    max-height: 350px;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    position: relative;
+    transition: all 0.2s ease;
 }
 
-.idea-card h4 {
-    font-size: 1rem;
-    margin-bottom: 0.5rem;
-}
-
-.idea-card p {
+/* Описание идеи - с прокруткой если текст длинный */
+.idea-description {
     font-size: 0.8rem;
     color: #a0a8c0;
+    line-height: 1.4;
+    margin-bottom: 0.8rem;
+    max-height: 100px;
+    overflow-y: auto;
+    padding-right: 4px;
+    word-wrap: break-word;
+    white-space: normal;
+}
+
+/* Стилизация скроллбара для описания */
+.idea-description::-webkit-scrollbar {
+    width: 3px;
+}
+
+.idea-description::-webkit-scrollbar-track {
+    background: #1a1f35;
+    border-radius: 3px;
+}
+
+.idea-description::-webkit-scrollbar-thumb {
+    background: #667eea;
+    border-radius: 3px;
+}
+
+/* Название идеи - обрезка с многоточием если слишком длинное */
+.idea-title {
+    font-size: 1rem;
+    font-weight: 700;
     margin-bottom: 0.5rem;
+    color: white;
+    word-wrap: break-word;
+    white-space: normal;
+    max-height: 60px;
+    overflow-y: auto;
+    line-height: 1.3;
+}
+
+/* Если название слишком длинное - добавляем прокрутку */
+.idea-title-scroll {
+    max-height: 60px;
+    overflow-y: auto;
+}
+
+/* Автоматическое сжатие текста через многоточие (альтернативный вариант) */
+.idea-title-ellipsis {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.idea-description-ellipsis {
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* При наведении показываем полный текст (для варианта с многоточием) */
+.idea-card:hover .idea-title-ellipsis,
+.idea-card:hover .idea-description-ellipsis {
+    display: block;
+    max-height: none;
+    overflow: visible;
+    white-space: normal;
+}
+
+/* Мета информация - фиксируем внизу */
+.idea-meta {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.7rem;
+    color: #7c8bd6;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-top: auto;
+    padding-top: 0.5rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+/* Действия админа - поверх карточки, не мешают тексту */
+.idea-actions {
+    position: absolute;
+    top: 0.8rem;
+    right: 0.8rem;
+    display: flex;
+    gap: 0.3rem;
+    z-index: 10;
+}
+
+/* Плашка типа идеи */
+.idea-type-plate {
+    display: inline-block;
+    font-size: 0.7rem;
+    padding: 0.25rem 0.8rem;
+    border-radius: 1rem;
+    margin-bottom: 0.8rem;
+    font-weight: 500;
+    width: fit-content;
+}
+
+/* Для очень длинных слов */
+.idea-title, .idea-description {
+    word-break: break-word;
+    overflow-wrap: break-word;
+    hyphens: auto;
+}
+
+/* Альтернатива - фиксированная высота карточки с прокруткой всего контента */
+.idea-card-scrollable {
+    max-height: 400px;
+    overflow-y: auto;
+    display: block;
+}
+
+.idea-card-scrollable::-webkit-scrollbar {
+    width: 5px;
+}
+
+.idea-card-scrollable::-webkit-scrollbar-track {
+    background: #1a1f35;
+    border-radius: 5px;
+}
+
+.idea-card-scrollable::-webkit-scrollbar-thumb {
+    background: #667eea;
+    border-radius: 5px;
 }
 
 .idea-meta {
@@ -2767,6 +2907,341 @@ audio {
 .edit-script-btn:hover {
     background: rgba(59, 78, 207, 0.3);
     transform: scale(1.05);
+}
+
+/* ========== ИДЕИ ========== */
+.idea-buttons {
+    display: flex;
+    gap: 0.8rem;
+}
+
+.new-idea-btn.site-idea {
+    background: linear-gradient(135deg, #8b5cf6, #7c3aed);
+}
+
+.idea-tabs {
+    display: flex;
+    gap: 0.5rem;
+    margin-bottom: 1.5rem;
+    border-bottom: 1px solid #2a2f48;
+    padding-bottom: 0.5rem;
+}
+
+.idea-tab {
+    background: transparent;
+    border: none;
+    padding: 0.5rem 1rem;
+    color: #a0a8c0;
+    font-size: 0.85rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+    border-radius: 0.5rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.idea-tab:hover {
+    background: rgba(102, 126, 234, 0.15);
+    color: white;
+}
+
+.idea-tab.active {
+    color: white;
+    border-bottom: 2px solid #667eea;
+}
+
+.pending-badge {
+    background: #ef4444;
+    color: white;
+    font-size: 0.6rem;
+    padding: 0.1rem 0.4rem;
+    border-radius: 1rem;
+    margin-left: 0.3rem;
+}
+
+.ideas-feed {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 1.2rem;
+}
+
+.idea-card {
+    background: linear-gradient(135deg, #1a1f35, #111521);
+    border-radius: 1rem;
+    padding: 1.2rem;
+    border: 1px solid #2a2f48;
+    transition: all 0.2s;
+    position: relative;
+}
+
+.idea-card:hover {
+    transform: translateY(-3px);
+    border-color: #667eea;
+}
+
+.idea-card.pending {
+    border-left: 4px solid #f59e0b;
+}
+
+.idea-card.approved {
+    border-left: 4px solid #22c55e;
+}
+
+.idea-card.rejected {
+    border-left: 4px solid #ef4444;
+    opacity: 0.6;
+}
+
+.idea-title {
+    font-size: 1rem;
+    font-weight: 700;
+    margin-bottom: 0.5rem;
+    color: white;
+    padding-right: 60px;
+}
+
+.idea-description {
+    font-size: 0.8rem;
+    color: #a0a8c0;
+    margin-bottom: 0.8rem;
+    line-height: 1.4;
+}
+
+.idea-meta {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.7rem;
+    color: #7c8bd6;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+.idea-author {
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+}
+
+.idea-likes {
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.idea-likes:hover {
+    color: #ef4444;
+}
+
+.idea-likes.liked {
+    color: #ef4444;
+}
+
+.idea-status {
+    font-size: 0.6rem;
+    padding: 0.2rem 0.5rem;
+    border-radius: 1rem;
+}
+
+.idea-status.pending {
+    background: rgba(245, 158, 11, 0.2);
+    color: #fbbf24;
+}
+
+.idea-status.approved {
+    background: rgba(34, 197, 94, 0.2);
+    color: #4ade80;
+}
+
+.idea-status.rejected {
+    background: rgba(239, 68, 68, 0.2);
+    color: #f87171;
+}
+
+.idea-actions {
+    position: absolute;
+    top: 1rem;
+    right: 1rem;
+    display: flex;
+    gap: 0.3rem;
+}
+
+.approve-idea-btn, .reject-idea-btn, .delete-idea-btn {
+    background: rgba(255, 255, 255, 0.05);
+    border: none;
+    width: 28px;
+    height: 28px;
+    border-radius: 0.5rem;
+    color: #a0a8c0;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.approve-idea-btn:hover {
+    background: rgba(34, 197, 94, 0.2);
+    color: #4ade80;
+}
+
+.reject-idea-btn:hover {
+    background: rgba(239, 68, 68, 0.2);
+    color: #f87171;
+}
+
+.delete-idea-btn:hover {
+    background: rgba(239, 68, 68, 0.2);
+    color: #f87171;
+}
+
+@media (max-width: 768px) {
+    .ideas-feed {
+        grid-template-columns: 1fr;
+    }
+
+    .idea-buttons {
+        flex-direction: column;
+        width: 100%;
+    }
+
+    .idea-tabs {
+        flex-wrap: wrap;
+    }
+}
+
+.idea-likes {
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.idea-likes:hover {
+    transform: scale(1.05);
+}
+
+.idea-likes.liked {
+    color: #ef4444;
+}
+
+.idea-likes.liked i {
+    animation: heartBeat 0.3s ease;
+}
+
+/* ========== КНОПКИ МОДЕРАЦИИ ИДЕЙ ========== */
+.idea-actions {
+    position: absolute;
+    top: 1rem;
+    right: 1rem;
+    display: flex;
+    gap: 0.3rem;
+}
+
+.approve-idea-btn, .reject-idea-btn, .delete-idea-btn {
+    background: rgba(255, 255, 255, 0.05);
+    border: none;
+    width: 32px;
+    height: 32px;
+    border-radius: 0.5rem;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.approve-idea-btn {
+    background: rgba(34, 197, 94, 0.15);
+    border: 1px solid #22c55e;
+    color: #4ade80;
+}
+
+.approve-idea-btn:hover {
+    background: rgba(34, 197, 94, 0.3);
+    transform: scale(1.05);
+}
+
+.reject-idea-btn {
+    background: rgba(239, 68, 68, 0.15);
+    border: 1px solid #ef4444;
+    color: #f87171;
+}
+
+.reject-idea-btn:hover {
+    background: rgba(239, 68, 68, 0.3);
+    transform: scale(1.05);
+}
+
+.delete-idea-btn {
+    background: rgba(239, 68, 68, 0.15);
+    border: 1px solid #ef4444;
+    color: #f87171;
+}
+
+.delete-idea-btn:hover {
+    background: rgba(239, 68, 68, 0.3);
+    transform: scale(1.05);
+}
+
+/* Позиционирование карточки идеи для абсолютных кнопок */
+.idea-card {
+    position: relative;
+}
+
+/* Стиль для иконки типа идеи */
+.idea-type-icon {
+    display: inline-block;
+    margin-right: 0.5rem;
+}
+
+/* Тултип при наведении */
+.idea-likes, .idea-actions button, .idea-type-icon {
+    cursor: pointer;
+}
+
+[title] {
+    position: relative;
+}
+
+/* Плашка типа идеи */
+.idea-type-plate {
+    display: inline-block;
+    font-size: 0.7rem;
+    padding: 0.25rem 0.8rem;
+    border-radius: 1rem;
+    margin-bottom: 0.8rem;
+    font-weight: 500;
+}
+
+.idea-type-plate.type-build {
+    background: rgba(245, 158, 11, 0.2);
+    color: #fbbf24;
+    border: 1px solid rgba(245, 158, 11, 0.3);
+}
+
+.idea-type-plate.type-site {
+    background: rgba(139, 92, 246, 0.2);
+    color: #a78bfa;
+    border: 1px solid rgba(139, 92, 246, 0.3);
+}
+
+/* Название идеи */
+.idea-title {
+    font-size: 1rem;
+    font-weight: 700;
+    margin-bottom: 0.5rem;
+    color: white;
+    word-break: break-word;
+}
+
+@keyframes heartBeat {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.3); }
+    100% { transform: scale(1); }
 }
 
 

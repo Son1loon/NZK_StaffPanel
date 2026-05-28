@@ -4,6 +4,7 @@ import com.staffpanel.NZKStuffPanel.models.*;
 import com.staffpanel.NZKStuffPanel.models.Character;
 import com.staffpanel.NZKStuffPanel.repository.*;
 import com.staffpanel.NZKStuffPanel.services.CloudinaryService;
+import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -78,12 +79,6 @@ public class ApiController {
     // ========== АУДИО ==========
     @GetMapping("/audio")
     public List<Map<String, String>> getAudio() {
-        return new ArrayList<>();
-    }
-
-    // ========== ИДЕИ ==========
-    @GetMapping("/ideas")
-    public List<Map<String, Object>> getIdeas() {
         return new ArrayList<>();
     }
 
@@ -1216,6 +1211,194 @@ public class ApiController {
         scriptRepository.save(script);
 
         return ResponseEntity.ok(Map.of("success", "Сценаристы обновлены"));
+    }
+
+    // ========== ИДЕИ ==========
+    @Autowired
+    private IdeaRepository ideaRepository;
+
+    @Autowired
+    private IdeaLikeRepository ideaLikeRepository;
+
+    // Получить все идеи
+    @GetMapping("/ideas")
+    public ResponseEntity<?> getIdeas(Authentication auth) {
+        String username = auth.getName();
+        boolean isAdmin = auth.getAuthorities().stream()
+                .anyMatch(granted -> granted.getAuthority().equals("ROLE_ADMIN"));
+
+        // Получаем текущего пользователя для проверки лайков
+        Optional<User> currentUserOpt = userRepository.findByUsername(username);
+        Long currentUserId = currentUserOpt.map(User::getId).orElse(null);
+
+        List<Idea> ideas;
+        if (isAdmin) {
+            ideas = ideaRepository.findAll();
+        } else {
+            ideas = ideaRepository.findByStatus("APPROVED");
+        }
+
+        List<Map<String, Object>> result = new ArrayList<>();
+        for (Idea idea : ideas) {
+            Map<String, Object> ideaMap = new HashMap<>();
+            ideaMap.put("id", idea.getId());
+            ideaMap.put("title", idea.getTitle());
+            ideaMap.put("description", idea.getDescription());
+            ideaMap.put("type", idea.getType());
+            ideaMap.put("author", idea.getAuthor());
+            ideaMap.put("status", idea.getStatus());
+            ideaMap.put("likes", idea.getLikesCount());
+            ideaMap.put("createdAt", idea.getCreatedAt());
+
+            // Добавляем информацию, лайкнул ли текущий пользователь
+            if (currentUserId != null) {
+                boolean liked = ideaLikeRepository.existsByIdeaIdAndUserId(idea.getId(), currentUserId);
+                ideaMap.put("liked", liked);
+            } else {
+                ideaMap.put("liked", false);
+            }
+
+            result.add(ideaMap);
+        }
+
+        return ResponseEntity.ok(result);
+    }
+
+    // Поставить/убрать лайк идее (toggle)
+    @PostMapping("/ideas/{id}/like")
+    @Transactional
+    public ResponseEntity<?> toggleLike(@PathVariable Long id, Authentication auth) {
+        String username = auth.getName();
+        Optional<User> userOpt = userRepository.findByUsername(username);
+        if (userOpt.isEmpty()) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Пользователь не найден"));
+        }
+
+        Optional<Idea> ideaOpt = ideaRepository.findById(id);
+        if (ideaOpt.isEmpty()) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Идея не найдена"));
+        }
+
+        Idea idea = ideaOpt.get();
+        User user = userOpt.get();
+
+        // Проверяем, есть ли уже лайк
+        boolean alreadyLiked = ideaLikeRepository.existsByIdeaIdAndUserId(id, user.getId());
+
+        if (alreadyLiked) {
+            // Удаляем лайк
+            ideaLikeRepository.deleteByIdeaIdAndUserId(id, user.getId());
+            idea.setLikesCount(idea.getLikesCount() - 1);
+            ideaRepository.save(idea);
+            return ResponseEntity.ok(Map.of("success", true, "liked", false, "likes", idea.getLikesCount()));
+        } else {
+            // Добавляем лайк
+            IdeaLike like = new IdeaLike();
+            like.setIdea(idea);
+            like.setUser(user);
+            ideaLikeRepository.save(like);
+            idea.setLikesCount(idea.getLikesCount() + 1);
+            ideaRepository.save(idea);
+            return ResponseEntity.ok(Map.of("success", true, "liked", true, "likes", idea.getLikesCount()));
+        }
+    }
+
+    // Получить статистику идей
+    @GetMapping("/ideas/stats")
+    public ResponseEntity<?> getIdeasStats() {
+        long buildIdeas = ideaRepository.countByTypeAndStatus("BUILD", "APPROVED");
+        long siteIdeas = ideaRepository.countByTypeAndStatus("SITE", "APPROVED");
+        long pendingIdeas = ideaRepository.countByStatus("PENDING");  // используй новый метод
+
+        Map<String, Object> stats = new HashMap<>();
+        stats.put("buildIdeas", buildIdeas);
+        stats.put("siteIdeas", siteIdeas);
+        stats.put("pendingIdeas", pendingIdeas);
+
+        return ResponseEntity.ok(stats);
+    }
+
+    // Добавьте этот метод в ApiController (рядом с другими методами для идей):
+
+    @PostMapping("/ideas")
+    public ResponseEntity<?> createIdea(@RequestBody Map<String, String> data, Authentication auth) {
+        String title = data.get("title");
+        String description = data.get("description");
+        String type = data.get("type"); // "BUILD" или "SITE"
+        String username = auth.getName();
+
+        // Валидация
+        if (title == null || title.trim().isEmpty()) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Введите название идеи"));
+        }
+        if (description == null || description.trim().isEmpty()) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Введите описание идеи"));
+        }
+        if (type == null || (!type.equals("BUILD") && !type.equals("SITE"))) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Неверный тип идеи"));
+        }
+
+        // Создаём идею
+        Idea idea = new Idea();
+        idea.setTitle(title);
+        idea.setDescription(description);
+        idea.setType(type);
+        idea.setAuthor(username);
+        idea.setStatus("PENDING");  // На модерации
+        idea.setLikesCount(0);
+
+        ideaRepository.save(idea);
+
+        return ResponseEntity.ok(Map.of("success", true, "message", "Идея отправлена на модерацию"));
+    }
+
+    // ========== АДМИНСКИЕ МЕТОДЫ ДЛЯ ИДЕЙ ==========
+
+    // Одобрить идею
+    @PostMapping("/admin/ideas/{id}/approve")
+    @PreAuthorize("hasRole('ADMIN')")
+    @Transactional
+    public ResponseEntity<?> approveIdea(@PathVariable Long id) {
+        Optional<Idea> ideaOpt = ideaRepository.findById(id);
+        if (ideaOpt.isEmpty()) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Идея не найдена"));
+        }
+        Idea idea = ideaOpt.get();
+        idea.setStatus("APPROVED");
+        ideaRepository.save(idea);
+        return ResponseEntity.ok(Map.of("success", true));
+    }
+
+    // Отклонить идею
+    @PostMapping("/admin/ideas/{id}/reject")
+    @PreAuthorize("hasRole('ADMIN')")
+    @Transactional
+    public ResponseEntity<?> rejectIdea(@PathVariable Long id) {
+        Optional<Idea> ideaOpt = ideaRepository.findById(id);
+        if (ideaOpt.isEmpty()) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Идея не найдена"));
+        }
+        Idea idea = ideaOpt.get();
+        idea.setStatus("REJECTED");
+        ideaRepository.save(idea);
+        return ResponseEntity.ok(Map.of("success", true));
+    }
+
+    // Удалить идею
+    @DeleteMapping("/admin/ideas/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
+    @Transactional
+    public ResponseEntity<?> deleteIdea(@PathVariable Long id) {
+        Optional<Idea> ideaOpt = ideaRepository.findById(id);
+        if (ideaOpt.isEmpty()) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Идея не найдена"));
+        }
+
+        // Удаляем все лайки этой идеи
+        ideaLikeRepository.deleteByIdeaId(id);
+
+        ideaRepository.deleteById(id);
+        return ResponseEntity.ok(Map.of("success", true));
     }
 
 }

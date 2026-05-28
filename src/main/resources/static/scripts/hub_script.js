@@ -71,9 +71,9 @@ async function loadTabData(tabId) {
             await loadCharacters();
             break;
         case 'ideas':
-            await loadIdeas();
+            await loadIdeas();  // <-- ЭТО ВЫЗЫВАЕТ ЗАГРУЗКУ ИДЕЙ
             break;
-        case 'scripts':      // <-- ДОБАВЬ ЭТОТ case
+        case 'scripts':
             await loadScreenwriters();
             await loadScripts();
             break;
@@ -108,18 +108,28 @@ async function loadStats() {
             activeTasks = tasks.inProgress?.length || 0;
         }
 
-        const statsResponse = await fetch('/api/stats');
-        let buildIdeas = 0, activeUsers = 0;
-        if (statsResponse.ok) {
-            const stats = await statsResponse.json();
+        // Получаем статистику идей
+        const ideasResponse = await fetch('/api/ideas/stats');
+        let buildIdeas = 0, siteIdeas = 0;
+        if (ideasResponse.ok) {
+            const stats = await ideasResponse.json();
             buildIdeas = stats.buildIdeas || 0;
+            siteIdeas = stats.siteIdeas || 0;
+        }
+
+        const usersResponse = await fetch('/api/stats');
+        let activeUsers = 0;
+        if (usersResponse.ok) {
+            const stats = await usersResponse.json();
             activeUsers = stats.activeUsers || 0;
         }
 
         const statValues = document.querySelectorAll('.stat-value');
         if (statValues[0]) statValues[0].textContent = activeTasks;
         if (statValues[1]) statValues[1].textContent = buildIdeas;
-        if (statValues[2]) statValues[2].textContent = activeUsers; // теперь это 3-й элемент
+        if (statValues[2]) statValues[2].textContent = siteIdeas;
+        if (statValues[3]) statValues[3].textContent = activeUsers;
+
     } catch (error) {
         console.error('Ошибка загрузки статистики:', error);
     }
@@ -590,49 +600,6 @@ async function loadAudioFiles() {
     } catch (error) {
         console.error('Ошибка загрузки аудио:', error);
         container.innerHTML = '<div class="error-message">Ошибка загрузки аудиофайлов</div>';
-    }
-}
-
-// ========== ИДЕИ ==========
-async function loadIdeas() {
-    const container = document.querySelector('#ideas-tab .ideas-feed');
-    if (!container) return;
-    try {
-        const response = await fetch('/api/ideas');
-        if (response.ok) {
-            const ideas = await response.json();
-            container.innerHTML = Array.isArray(ideas) && ideas.length ? ideas.map(idea => `
-                <div class="idea-card">
-                    <h4>💡 ${escapeHtml(idea.title)}</h4>
-                    <p>${escapeHtml(idea.description)}</p>
-                    <div class="idea-meta">
-                        <span>✍️ ${escapeHtml(idea.author)}</span>
-                        <span class="like-btn" data-id="${idea.id}">❤️ ${idea.likes || 0} лайков</span>
-                    </div>
-                </div>
-            `).join('') : '<div class="empty-state">Нет идей построек</div>';
-            document.querySelectorAll('.like-btn').forEach(btn => {
-                btn.addEventListener('click', async () => {
-                    const ideaId = btn.getAttribute('data-id');
-                    await likeIdea(ideaId);
-                });
-            });
-        }
-    } catch (error) {
-        console.error('Ошибка загрузки идей:', error);
-        container.innerHTML = '<div class="error-message">Ошибка загрузки идей</div>';
-    }
-}
-
-async function likeIdea(ideaId) {
-    const csrf = getCsrfToken();
-    const headers = { 'Content-Type': 'application/json' };
-    if (csrf) headers[csrf.header] = csrf.token;
-    try {
-        const response = await fetch(`/api/ideas/${ideaId}/like`, { method: 'POST', headers });
-        if (response.ok) await loadIdeas();
-    } catch (error) {
-        console.error('Ошибка:', error);
     }
 }
 
@@ -2260,6 +2227,290 @@ async function saveScriptAssignees() {
     }
 }
 
+// ========== ИДЕИ ==========
+let currentIdeaType = 'BUILD';
+
+async function loadIdeas() {
+    const container = document.getElementById('ideasContainer');
+    if (!container) return;
+
+    try {
+        const response = await fetch('/api/ideas');
+        if (!response.ok) {
+            console.error('Ошибка загрузки идей, статус:', response.status);
+            container.innerHTML = '<div class="error-message">❌ Ошибка загрузки идей</div>';
+            return;
+        }
+
+        let ideas = await response.json();
+        console.log('Загружено идей:', ideas.length);
+
+        const isAdmin = window.userData.isAdmin;
+
+        // Фильтруем по типу
+        if (currentIdeaType === 'PENDING') {
+            ideas = ideas.filter(i => i.status === 'PENDING');
+        } else {
+            ideas = ideas.filter(i => i.type === currentIdeaType && i.status === 'APPROVED');
+        }
+
+        // Обновляем бейдж с количеством pending идей
+        if (isAdmin) {
+            const allIdeasResponse = await fetch('/api/ideas');
+            if (allIdeasResponse.ok) {
+                const allIdeas = await allIdeasResponse.json();
+                const pendingCount = allIdeas.filter(i => i.status === 'PENDING').length;
+                const pendingBadge = document.getElementById('pendingBadge');
+                if (pendingBadge) {
+                    pendingBadge.textContent = pendingCount;
+                    pendingBadge.style.display = pendingCount > 0 ? 'inline-flex' : 'none';
+                }
+            }
+        }
+
+        if (ideas.length === 0) {
+            container.innerHTML = '<div class="empty-state">✨ Нет идей в этой категории</div>';
+            return;
+        }
+
+        // ОДИН map, без вложенности!
+        container.innerHTML = ideas.map(idea => {
+            const typeIcon = idea.type === 'BUILD' ? '<i class="fas fa-hard-hat"></i>' : '<i class="fas fa-globe"></i>';
+            const typeText = idea.type === 'BUILD' ? 'Идея для постройки' : 'Идея для улучшения сайта';
+            const typeClass = idea.type === 'BUILD' ? 'type-build' : 'type-site';
+
+            return `
+            <div class="idea-card ${idea.status.toLowerCase()}">
+                <div class="idea-type-plate ${typeClass}" title="${typeText}">
+                    ${typeIcon} ${typeText}
+                </div>
+
+                <div class="idea-title idea-title-ellipsis" title="${escapeHtml(idea.title)}">${escapeHtml(idea.title)}</div>
+
+                <div class="idea-description idea-description-ellipsis" title="${escapeHtml(idea.description)}">${escapeHtml(idea.description)}</div>
+
+                <div class="idea-meta">
+                    <span class="idea-author"><i class="fas fa-user"></i> ${escapeHtml(idea.author)}</span>
+                    <span class="idea-date"><i class="fas fa-calendar"></i> ${new Date(idea.createdAt).toLocaleDateString('ru-RU')}</span>
+                    <span class="idea-likes ${idea.liked ? 'liked' : ''}" onclick="likeIdea(${idea.id}, this)" title="${idea.liked ? 'Убрать лайк' : 'Поставить лайк'}">
+                        <i class="fas fa-heart"></i>
+                        <span class="likes-count">${idea.likes || 0}</span>
+                    </span>
+                    ${idea.status !== 'APPROVED' ? `<span class="idea-status ${idea.status.toLowerCase()}">${idea.status === 'PENDING' ? 'На модерации' : 'Отклонено'}</span>` : ''}
+                </div>
+
+                ${isAdmin && idea.status === 'PENDING' ? `
+                    <div class="idea-actions">
+                        <button class="approve-idea-btn" onclick="approveIdea(${idea.id})" title="Одобрить">✅</button>
+                        <button class="reject-idea-btn" onclick="rejectIdea(${idea.id})" title="Отклонить">❌</button>
+                        <button class="delete-idea-btn" onclick="deleteIdea(${idea.id})" title="Удалить">🗑️</button>
+                    </div>
+                ` : (isAdmin ? `
+                    <div class="idea-actions">
+                        <button class="delete-idea-btn" onclick="deleteIdea(${idea.id})" title="Удалить">🗑️</button>
+                    </div>
+                ` : '')}
+            </div>
+            `;
+        }).join('');
+
+    } catch (error) {
+        console.error('Ошибка загрузки идей:', error);
+        container.innerHTML = '<div class="error-message">❌ Ошибка загрузки идей</div>';
+    }
+}
+
+function switchIdeaType(type) {
+    currentIdeaType = type;
+
+    // Обновляем активный класс у вкладок
+    document.querySelectorAll('.idea-tab').forEach(tab => {
+        const tabType = tab.getAttribute('data-idea-type');
+        if (tabType === type) {
+            tab.classList.add('active');
+        } else {
+            tab.classList.remove('active');
+        }
+    });
+
+    loadIdeas();
+}
+
+// Лайк идеи (toggle)
+async function likeIdea(ideaId, element) {
+    const csrf = getCsrfToken();
+    const headers = { 'Content-Type': 'application/json' };
+    if (csrf) headers[csrf.header] = csrf.token;
+
+    try {
+        const response = await fetch(`/api/ideas/${ideaId}/like`, {
+            method: 'POST',
+            headers: headers
+        });
+
+        if (response.ok) {
+            const data = await response.json();
+
+            // Обновляем счётчик лайков
+            const likesSpan = element.querySelector('.likes-count');
+            if (likesSpan) likesSpan.textContent = data.likes;
+
+            // Обновляем сердечко
+            const heartIcon = element.querySelector('i');
+            if (data.liked) {
+                element.classList.add('liked');
+                if (heartIcon) heartIcon.style.color = '#ef4444';
+            } else {
+                element.classList.remove('liked');
+                if (heartIcon) heartIcon.style.color = '';
+            }
+
+            // Анимация
+            element.style.transform = 'scale(1.2)';
+            setTimeout(() => {
+                element.style.transform = 'scale(1)';
+            }, 200);
+        } else {
+            const error = await response.json();
+            showNotification(`❌ ${error.error || 'Ошибка'}`, 'error');
+        }
+    } catch (error) {
+        console.error('Ошибка:', error);
+        showNotification('❌ Ошибка соединения', 'error');
+    }
+}
+
+// Открытие модального окна создания идеи
+let currentIdeaTypeForModal = 'BUILD';
+
+function openCreateIdeaModal(type) {
+    currentIdeaTypeForModal = type;
+    const modal = document.getElementById('createIdeaModal');
+    const title = document.getElementById('createIdeaModalTitle');
+
+    if (type === 'BUILD') {
+        title.innerHTML = '<i class="fas fa-hard-hat"></i> Добавить идею для постройки';
+    } else {
+        title.innerHTML = '<i class="fas fa-globe"></i> Добавить идею для улучшения сайта';
+    }
+
+    document.getElementById('ideaTitle').value = '';
+    document.getElementById('ideaDescription').value = '';
+    modal.style.display = 'flex';
+}
+
+function closeCreateIdeaModal() {
+    const modal = document.getElementById('createIdeaModal');
+    modal.style.display = 'none';
+}
+
+async function createIdea() {
+    const title = document.getElementById('ideaTitle').value.trim();
+    const description = document.getElementById('ideaDescription').value.trim();
+
+    if (!title) {
+        showNotification('❌ Введите название идеи', 'error');
+        return;
+    }
+    if (!description) {
+        showNotification('❌ Введите описание идеи', 'error');
+        return;
+    }
+
+    const csrf = getCsrfToken();
+    const headers = { 'Content-Type': 'application/json' };
+    if (csrf) headers[csrf.header] = csrf.token;
+
+    try {
+        const response = await fetch('/api/ideas', {
+            method: 'POST',
+            headers: headers,
+            body: JSON.stringify({ title, description, type: currentIdeaTypeForModal })
+        });
+
+        const data = await response.json();
+
+        if (response.ok) {
+            showNotification('✅ Идея отправлена на модерацию!', 'success');
+            closeCreateIdeaModal();
+            await loadIdeas();
+            await loadStats();
+        } else {
+            showNotification(`❌ ${data.error || 'Ошибка'}`, 'error');
+        }
+    } catch (error) {
+        console.error('Ошибка:', error);
+        showNotification('❌ Ошибка соединения', 'error');
+    }
+}
+
+// Админские функции для идей
+async function approveIdea(ideaId) {
+    const csrf = getCsrfToken();
+    const headers = {};
+    if (csrf) headers[csrf.header] = csrf.token;
+
+    try {
+        const response = await fetch(`/api/admin/ideas/${ideaId}/approve`, { method: 'POST', headers });
+        if (response.ok) {
+            showNotification('✅ Идея одобрена', 'success');
+            await loadIdeas();
+            await loadStats();
+        } else {
+            const data = await response.json();
+            showNotification(`❌ ${data.error || 'Ошибка'}`, 'error');
+        }
+    } catch (error) {
+        console.error('Ошибка:', error);
+        showNotification('❌ Ошибка соединения', 'error');
+    }
+}
+
+async function rejectIdea(ideaId) {
+    if (!confirm('Отклонить эту идею?')) return;
+
+    const csrf = getCsrfToken();
+    const headers = {};
+    if (csrf) headers[csrf.header] = csrf.token;
+
+    try {
+        const response = await fetch(`/api/admin/ideas/${ideaId}/reject`, { method: 'POST', headers });
+        if (response.ok) {
+            showNotification('❌ Идея отклонена', 'success');
+            await loadIdeas();
+        } else {
+            const data = await response.json();
+            showNotification(`❌ ${data.error || 'Ошибка'}`, 'error');
+        }
+    } catch (error) {
+        console.error('Ошибка:', error);
+        showNotification('❌ Ошибка соединения', 'error');
+    }
+}
+
+async function deleteIdea(ideaId) {
+    if (!confirm('Удалить эту идею? Это действие необратимо!')) return;
+
+    const csrf = getCsrfToken();
+    const headers = {};
+    if (csrf) headers[csrf.header] = csrf.token;
+
+    try {
+        const response = await fetch(`/api/admin/ideas/${ideaId}`, { method: 'DELETE', headers });
+        if (response.ok) {
+            showNotification('🗑️ Идея удалена', 'success');
+            await loadIdeas();
+            await loadStats();
+        } else {
+            const data = await response.json();
+            showNotification(`❌ ${data.error || 'Ошибка'}`, 'error');
+        }
+    } catch (error) {
+        console.error('Ошибка:', error);
+        showNotification('❌ Ошибка соединения', 'error');
+    }
+}
+
 // ========== ИНИЦИАЛИЗАЦИЯ ==========
 document.addEventListener('DOMContentLoaded', async () => {
     initTabs();
@@ -2273,7 +2524,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     window.addEventListener('beforeunload', () => stopHeartbeat());
     document.querySelector('.add-task-btn')?.addEventListener('click', () => window.location.href = '/give_tusk_form');
     document.querySelector('.upload-audio-btn')?.addEventListener('click', () => alert('🎙️ Загрузка аудио будет доступна позже'));
-    document.querySelector('.new-idea-btn')?.addEventListener('click', () => window.location.href = '/add_idea');
     document.getElementById('refreshRequestsBtn')?.addEventListener('click', () => loadRegistrationRequests());
     document.getElementById('refreshUsersBtn')?.addEventListener('click', () => loadUsersManagement());
     setInterval(async () => {
